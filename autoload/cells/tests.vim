@@ -72,3 +72,47 @@ fun! cells#tests#TraitTestQuickfix(cell) abort
   return a:cell
 endf
 
+" {{{
+
+fun! cells#tests#TraitTestCompletion(cell) abort
+
+  call cells#traits#Ask(a:cell)
+
+  fun! a:cell.l_completions(event)
+    " sample implemenattion illustrating how word completion within a buffer
+    " can be done showing words nearby the cursor rated higher
+    " implementing multiple match_types.
+
+    let word_before_cursor = matchstr(a:event.line_split_at_cursor[0], '\zs\S*$')
+
+    let words = {}
+    let linenr = 1
+
+    for w in split(join(getline(1, line('.'))," "),'[/#$|,''"`; \&()[\t\]{}.,+*:]\+')
+      if (w == word_before_cursor) | continue | endif
+      let line_diff = linenr - a:event.position[1]
+      if line_diff > 100
+        let certainity = 1
+      else
+        " words in lines nearby cursor are more important ..
+        let certainity = 1 + abs(100.0 - line_diff) / 500
+        if linenr > a:event.position[1]
+          " lines below cursor are less important than above cursor
+          let certainity = sqrt(certainity)
+        endif
+      endif
+      let words[w] = {'word': w, 'certainity': certainity}
+      let linenr += 1
+    endfor
+
+    let completions = cells#util#match_by_type(values(words), word_before_cursor, a:event.match_types)
+    call self.reply_result(a:event, [{
+          \ 'column': a:event.position[2] - len(word_before_cursor),
+          \ 'completions' : completions
+    \ }])
+  endf
+
+  return a:cell
+
+endf
+" }}}

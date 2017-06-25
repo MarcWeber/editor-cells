@@ -23,6 +23,8 @@ endf
 
 fun! cells#Kill(selector)
   call cells#Emit({'type': 'killcells', 'selector': a:selector})
+  " returning "" so that it can be called in <c-r> style in insert mode
+  return ""
 endf
 
 fun! cells#log(lines) abort

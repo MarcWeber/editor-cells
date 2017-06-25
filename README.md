@@ -53,6 +53,15 @@ A cell has
   - can talk to other cells by receiving and sending events
 Some porcelain is be provided for making async conversations easier
 
+LIMITS
+======
+Well, eventually it does not make sence to use cells to define highlighting or
+folding or similar (?) - to be seen. But things like smartest completion ever
+with machine learning what is is used most in context and the ilke.
+
+For instance if you're within a foreach(.. as $x) its highly likely that you're
+going to use $x
+
 EVENTS
 ======
 An event is a dictionary which can be serialized (such as JSON) because most
@@ -75,11 +84,11 @@ Special keys:
   sender: <cell-id>, for instance when sending replies
 
 
-SPECIAL EVENTS / CONCEPTS
-=========================
+SPECIAL EVENTS / CONCEPTS / COMMON FEATURES
+============================================
 
 " results:
-If an event has key 'reply_to' it indicates that a cell should reply. You can
+If an eveisnt has key 'reply_to' it indicates that a cell should reply. You can
 add a 'request_id' which if present should be included in the reply
 
 " internal use:
@@ -100,10 +109,6 @@ add a 'request_id' which if present should be included in the reply
 { 'type': 'set_properties', 'properties': {'enabled': v:false} }
 { 'type': 'log', 'lines': [], 'prio': TODO, 'sender': optional cell_id }
 { 'type': 'killed': sender: 'cell-id' } " if other cells might depend on a cell it can notify the other cells that it has been killed
-{ 'type': 'completions'} " return results [{'word', 'description', 'continuation' : '..'}]
-
-  <location_keys>: file, line
-  <action>: action which can be run
 
 { 'type': 'definition'} -> [{<cell_id>, 'text': 'mulitiline text', <location_keys>}]
 
@@ -114,15 +119,51 @@ add a 'request_id' which if present should be included in the reply
 { 'type': 'related_files', 'type': 'close/loose' } 
   -> [{<cell_id>, 'exists': true/false, 'path': ...}]
 
+" === completions
+  There are some very strong contexts such as completing after 'this.' in OO
+  languages which should block other completions eventually, how to implement it?
+  Use all completions all the time? I don't know yet
+
+  It also could make sense to have completions return 'context' information so
+  that probabilities can be calculated about which completions to show first /
+  more likely.
+
+  Forinstance its more likely that you use a function paramteter within a
+  forach(..) loop than any PHP function which is unrelated
+
+  {'type': 'completions'
+    "context_lines": []
+    'line_split_at_cursor':
+    'position': # see getpos('.')
+    'limit': 500
+    'match_types': ['prefix', 'ycm', 'camel_case_like']
+  }
+
+  reply => 
+  [
+    { 'column': .., 'context': 'default', 'completions': [{'word', 'description', 'continuation' : '..', 'certainity' => float}] }
+  ]
+
+  Set context to something different to 'default' if you think you found a
+  context making this completion much more likely to match, such as after
+  background-color in css
+
+  The code showing the completions might use this information for both:
+  Calculating probabilities or disregarding other completions or showing them first
+
+  <location_keys>: file, line
+  <action>: action which can be run
+
+
 " === filetype
 {' 'type': 'ftdetect' }
 => reply 'js' or such
-
-" === commonly used au commands as events
+  
+" === commonly used au commands as events 
 TODO
-{ 'type': 'bufenter', 'bufnr': .., 'filename': .. }
-{ 'type': 'bufnew', 'bufnr': .., 'filename': .. } # au triggers: BufNewFile,BufRead
-{ 'type': 'filetype', 'bufnr': .., 'filename': .. }
+{ 'type': 'bufenter', 'bufnr': .., 'filename': .. } # au trigger: BufEnter
+{ 'type': 'bufnew', 'bufnr': .., 'filename': .. }   # au triggers: BufNewFile,BufRead
+{ 'type': 'filetype', 'bufnr': .., 'filename': .. } # ....
 
 " === mappings
 A cell just tells "I have mappings to be mapped" using the mappings_changed event.
@@ -139,7 +180,7 @@ event thus can unmap as neccessary
      [{'key': 'global', 'mode':'normal', 'lhs':  '<f2>', 'emit_event': {key 'type' set: event to be emitted},
       {'key': <scope>,  'mode':<mode>, 'lhs': '<br>', 'emit_event':  {}}]
 
-    scope: global / console / bufnr:.. / filetype_regex:.. / filename_regex:..
+    scope: global / console / bufnr:.. / filetype_regex:.. / filename_regex=..
     mode: insert|visual|normal
 
   Scope expressions:

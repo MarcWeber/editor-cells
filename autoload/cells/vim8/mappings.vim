@@ -88,7 +88,16 @@ fun! cells#vim8#mappings#Trait(cell) abort
         " setup mapping
         let a:active_lhs[m.lhs] = 1
         let event = {'type': 'evoke_mapping', 'scope': a:scope, 'mode': a:mode, 'lhs' : m.lhs}
-        let rhs   = ' :call cells#Emit('.string(event).', '.string({'id': self.id}).')<cr>'
+        if a:mode == 'insert'
+          let rhs   = '=cells#Emit('.string(event).', '.string({'id': self.id}).')'
+          "let rhs=substitute(rhs, '<', '<lt>', 'g')
+          "let rhs=substitute(rhs, ' ', '<space>', 'g')
+          let rhs = '<c-r>'.rhs.'<cr>'
+        else
+          let rhs   = ' :call cells#Emit('.string(event).', '.string({'id': self.id}).')<cr>'
+          let rhs=substitute(rhs, ' ', '<space>', 'g')
+          let rhs=substitute(rhs, '<', '<lt>', 'g')
+        endif
         echom 'mapping '.map_cmd.' '.m.lhs.' '.rhs
         exec map_cmd.' '.m.lhs.' '.rhs
       endif
@@ -113,6 +122,8 @@ fun! cells#vim8#mappings#Trait(cell) abort
       let mapping = all[0]
       if has_key(mapping, 'emit_event')
         call cells#Emit(mapping.emit_event)
+      elseif has_key(mapping, 'rhs')
+        call feedkeys(mapping.rhs, 't')
       else
         echoe "don't know how to run evoke mapping ".string(a:mapping)
       endif

@@ -104,7 +104,7 @@ fun! cells#viml#CellsBySelector(selector) abort
   if type(a:selector) == type({}) 
     if  has_key(a:selector, 'id')
       return [s:c.cells[a:selector.id]]
-    elseif  has_key(a:selector, 'listens_to')
+    elseif has_key(a:selector, 'listens_to')
       let l_listens_to = 
       return map(filter(copy(s:c.cells), 'has_key(v:val, '.string('l_'.a:selector.listens_to).')'), 'v:val.id')
     else
