@@ -83,7 +83,6 @@ Special keys:
 
   sender: <cell-id>, for instance when sending replies
 
-
 SPECIAL EVENTS / CONCEPTS / COMMON FEATURES
 ============================================
 
@@ -96,6 +95,7 @@ add a 'request_id' which if present should be included in the reply
 
 " core events which should be implemented by each target
   { 'type': 'emit', }  emit event to all cells, also see emit_to_one
+  { 'type': 'cell_collections', }   => reply {'prefix': ..., 'details': ...}
   { 'type': 'cell_kill', selector: ..} # kills cells matching selector
   { 'type': 'cell_list', 'selector': ... } # reply list of ids of cells matching selector, see cells#viml#CellsBySelector
 
@@ -159,8 +159,7 @@ add a 'request_id' which if present should be included in the reply
 {' 'type': 'ftdetect' }
 => reply 'js' or such
   
-" === commonly used au commands as events 
-TODO
+" === CORE EDITOR EVENTS being close to au triggers
 { 'type': 'bufenter', 'bufnr': .., 'filename': .. } # au trigger: BufEnter
 { 'type': 'bufnew', 'bufnr': .., 'filename': .. }   # au triggers: BufNewFile,BufRead
 { 'type': 'filetype', 'bufnr': .., 'filename': .. } # ....

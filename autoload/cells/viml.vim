@@ -75,6 +75,10 @@ fun! cells#viml#Kill(cell) abort
   call a:cell.kill()
 endf
 
+fun! cells#viml#emit_selector(event, selector) abort
+  call cells#viml#emit(a:event, cells#viml#CellsBySelector(a:selector))
+endf
+
 fun! cells#viml#emit(event, viml_cells) abort
   let listener = 'l_'.a:event.type
   let wait_for = []
@@ -117,8 +121,12 @@ fun! cells#viml#CellsBySelector(selector) abort
   endif
 endf
 
-fun! cells#viml#vim8_CoreEvents() abort
+
+fun! cells#viml#CellCollection()
   let c = cells#viml#Cell({'purpose': 'emit to events to viml cells'})
+  fun! c.l_cell_collections(event) abort
+    call self.reply_result(a:event, {'prefix': 'vim', 'details': 'default viml cell collection'})
+  endf
   fun! c.l_emit(event) abort
     call cells#viml#emit(a:event.event, cells#viml#CellsBySelector(a:event.selector))
   endf
@@ -130,14 +138,33 @@ fun! cells#viml#vim8_CoreEvents() abort
   fun! c.l_cell_list(event)
     call self.reply_result(map(copy(cells#viml#CellsBySelector(a:event.selector)), 'v:val.id'))
   endf
+endf
 
+fun! cells#viml#vim8_CoreEvents() abort
   augroup CELLS_VIM8_CORE_EVENTS
   au!
   au BufRead,BufNewFile * call cells#Emit({'type': 'bufnew', 'bufnr': bufnr('%'), 'filename': bufname('%')})
   au BufEnter * call cells#Emit({'type': 'bufenter', 'bufnr': bufnr('%'), 'filename': bufname('%')})
   augroup end
-
   return c
+endf
+
+fun! cells#viml#setupPython(py_cmd)
+  if has(a:py_cmd)
+  endif
+  call cells#viml#vim8_VimEventToPy(a:py_cmd)
+endf
+
+fun! cells#viml#vim8_VimEventToPy(py_cmd) abort
+  execute a:py_cmd.' import vim'
+  execute a:py_cmd.' import cells'
+  let cell = cells#viml#Cell({})
+  let cell.py_cmd = a:py_cmd
+  fun! cell.l_emit(event)
+    if a:event.origin_network != self.py_cmd
+      execute self.py_cmd.' cells.Emit(vim.eval("a:event"))'
+    endif
+  endf
 endf
 
 fun! cells#viml#CellReplyCollector(cell) abort
