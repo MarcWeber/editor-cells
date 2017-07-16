@@ -120,7 +120,9 @@ fun! cells#vim8#completions#Trait(cell) abort
     else
       if s:c.have_completions
         call self.setup_mappings()
-        return s:c.current_completions.completions
+        let r = s:c.current_completions.completions
+        call remove(s:c, 'current_completions')
+        return r
       else
         return []
       endif
