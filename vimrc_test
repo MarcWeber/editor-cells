@@ -18,6 +18,6 @@ endfor
 
 call cells#tests#RunAllTests()
 
-if cells#examples#vim_dev#GotoError('first') | cfirst | endif
+if cells#vim_dev#GotoError('first') | cfirst | endif
 
 nnoremap <esc>. :cnext<cr>

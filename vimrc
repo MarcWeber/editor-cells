@@ -58,10 +58,10 @@ fun! SetupPyTestCells()
 if has('python')
 py << END
 import cells.examples
-cells.examples.Completion()
-cells.examples.Mappings()
-cells.examples.Signs()
-cells.examples.Quickfix()
+cells.examples.Completion() # works (except camel case like matching
+cells.examples.Mappings() # TODO
+cells.examples.Signs()    # TODO
+cells.examples.Quickfix() # TODO
 END
 endif
 endf
@@ -69,5 +69,5 @@ endf
 " echom 'use the following examples call SetupVimTestCells | call SetupVimTestCells()'
 
 
-" if cells#examples#vim_dev#GotoError('first') | cfirst | endif
+" if cells#vim_dev#GotoError('first') | cfirst | endif
 nnoremap <esc>. :cnext<cr>
