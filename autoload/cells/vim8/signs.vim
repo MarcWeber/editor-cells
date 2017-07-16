@@ -20,7 +20,7 @@ fun! cells#vim8#signs#Trait(cell) abort
     call self.update_buffers(ask)
   endf
   fun! a:cell.update_buffers(bufnrs)
-    call self.ask({'event': {'type': 'signs', 'limit': self.limit, 'for_buffers': a:bufnrs}, 'cb': 'update_signs'})
+    call self.ask('update_signs', {'type': 'signs', 'limit': self.limit, 'for_buffers': a:bufnrs})
   endf
 
   fun! a:cell.update_signs(request)
@@ -64,7 +64,8 @@ fun! cells#vim8#signs#UpdateSigns(event, results) abort
   let results = cells#util#Flatten1(a:results)
   for data in a:event.for_buffers
     let bufnr = data.bufnr
-    let placed_signs = cells#util#ByKeysDefault(getbufvar(bufnr, ""), ['cells_placed_signs'], {})
+    if type(getbufvar(bufnr, "&")) == type('') | echom 'got signs for not existing buffer '.bufnr | continue | endif 
+    let placed_signs = cells#util#ByKeysDefault(getbufvar(bufnr, "&"), ['cells_placed_signs'], {})
     let results_by_bufnr = filter(copy(results), 'v:val.bufnr == '.bufnr )
 
     " update to sign (category,name) tuples which have been used previously

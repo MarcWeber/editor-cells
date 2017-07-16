@@ -8,7 +8,7 @@ fun! cells#vim8#mappings#Trait(cell) abort
   call cells#traits#Ask(a:cell)
 
   fun! a:cell.l_mappings_changed(event) abort
-    call self.ask({'event': {'type': 'mappings'}, 'cb': 'mappings_received', 'selector': {'id': a:event.sender}})
+    call self.ask('mappings_received', {'type': 'mappings', 'selector': {'id': a:event.sender}})
   endf
 
   fun! a:cell.mappings_received(request) abort
@@ -89,12 +89,12 @@ fun! cells#vim8#mappings#Trait(cell) abort
         let a:active_lhs[m.lhs] = 1
         let event = {'type': 'evoke_mapping', 'scope': a:scope, 'mode': a:mode, 'lhs' : m.lhs}
         if a:mode == 'insert'
-          let rhs   = '=cells#Emit('.string(event).', '.string({'id': self.id}).')'
+          let rhs   = '=g:cells.emit('.string(event).', '.string({'id': self.id}).')'
           "let rhs=substitute(rhs, '<', '<lt>', 'g')
           "let rhs=substitute(rhs, ' ', '<space>', 'g')
           let rhs = '<c-r>'.rhs.'<cr>'
         else
-          let rhs   = ' :call cells#Emit('.string(event).', '.string({'id': self.id}).')<cr>'
+          let rhs   = ' :call g:cells.emit('.string(event).', '.string({'id': self.id}).')<cr>'
           let rhs=substitute(rhs, ' ', '<space>', 'g')
           let rhs=substitute(rhs, '<', '<lt>', 'g')
         endif
@@ -121,7 +121,7 @@ fun! cells#vim8#mappings#Trait(cell) abort
     if len(all) == 1
       let mapping = all[0]
       if has_key(mapping, 'emit_event')
-        call cells#Emit(mapping.emit_event)
+        call g:cells.emit(mapping.emit_event)
       elseif has_key(mapping, 'rhs')
         call feedkeys(mapping.rhs, 't')
       else

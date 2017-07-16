@@ -5,61 +5,68 @@ fun! cells#traits#Ask(cell) abort
   " call cells#traits#Ask(cell)
   " 
   " fun! cell.DoStuff()
-  "    call self.ask({'event': {event question}, 'cb': 'handle_result', 'cb_args': .., 'selector': ..})
+  "    call self.ask('handle_result', {'type': 'event'}, {})
   " endf
-  " fun! cell.handle_result(request, payload1)
+  " fun! cell.handle_result(request)
   "   let first_result = a:request.results_good[0]
   " endf
 
   let a:cell.requests = get(a:cell, 'requests', {})
 
-  fun! a:cell.cancel_request(request_id)
+  fun! a:cell.cancel_request(request_id) abort
     if !has_key(self.requests, a:request_id) | return |endif
     let request = remove(self.requests, a:request_id)
-    for x in keys()
-      call cells#Emit({'type': 'cancel_request', 'reuqest_id': a:request_id})
+    for id in keys(request.waiting_for)
+      call g:cells.emit({'type': 'cancel_request', 'reuqest_id': a:request_id}, {'id': id})
     endfor
   endf
 
-  fun! a:cell.cancel_ask(request)
+  fun! a:cell.cancel_ask(cb, event, ...) abort
+    let request = a:0 > 0 ? a:1 : {}
     " if a request of same type has been running cancel it
     " then restart. Useful for stuff like completions. When starting a new
     " completion don't wait for old results
     for [k,i] in items(self.requests)
-      if get(i, 'type') == a:request.type
-        call self.cancel_request(i.request_id)
+      if has_key(i,'type') && get(i, 'type') == request.type
+        call self.cancel_request(k)
       endif
     endfor
-    call self.ask(a:request)
+    call self.ask(a:cb, a:event, request)
   endf
 
-  fun! a:cell.ask(request)
-    let a:request.replies_to_be_waited_for = {}
-    let a:request.waiting_for = {'initial': 1}
-    let a:request.results = []
-    let a:request.cancel = 0
+  fun! a:cell.ask(cb, event, ...) abort
+    let request = a:0 > 0 ? a:1 : {}
+    let request.cb = a:cb
+    let request.event = a:event
+
+    let request.replies_to_be_waited_for = {}
+    let request.cancel = 0
+    let request.waiting_for = {}
 
     " emit event watiing for replies, calling cb when ready
-    let a:request.event.request_id = cells#viml#NextId()
-    let a:request.event.reply_to = self.id
+    let a:event.request_id = cells#viml#NextId()
+    let a:event.reply_to = self.id
 
-    let self.requests[a:request.event.request_id] = a:request
-    call cells#Emit(a:request.event, get(a:request, 'selector', 'all'))
+    let self.requests[request.event.request_id] = request
 
-    return a:request.event.request_id
+    call g:cells.emit(a:event)
+    for id in a:event.wait_for
+      let request.waiting_for[id] = 1
+    endfor
+    let request.results = a:event.results
+    call self.__check_request_finished(request)
+    return a:event.request_id
   endf
 
-  fun! a:cell.__process_reply(request, event) abort
-    if has_key(a:event, 'wait_for')
-      for cell_id in a:event.wait_for
-        if has_key(a:request.replies_to_be_waited_for, cell_id)
-          call add(a:request.results, remove(a:request.replies_to_be_waited_for, cell_id))
-        else
-          let a:request.waiting_for[cell_id] = 1
-        endif
-      endfor
-    else
-      call add(a:request.results, a:event)
+  fun! a:cell.__check_request_finished(request) abort
+    if len(a:request.waiting_for) == 0 && len(a:request.replies_to_be_waited_for) == 0
+      " let g:cells['traces'] = get(g:cells, 'traces', [])
+      call remove(self.requests, a:request.event.request_id)
+      if (!a:request.cancel)
+        let a:request.results_good  = map(filter(copy(a:request.results), 'has_key(v:val, "result")'), 'v:val.result')
+        let a:request.errors = map(filter(copy(a:request.results), 'has_key(v:val, "error")'), 'v:val.error')
+        call call(self[a:request.cb], [a:request], self)
+      endif
     endif
   endf
 
@@ -70,46 +77,25 @@ fun! cells#traits#Ask(cell) abort
     let request = self.requests[request_id]
 
     if has_key(request.waiting_for, a:event.sender)
-      call remove(request.waiting_for, a:event.sender)
-      call self.__process_reply(request, a:event)
 
-      if len(request.waiting_for) == 0
-        call remove(self.requests, request_id)
-        if (!request.cancel)
-          let request.results_good  = map(filter(copy(request.results), 'has_key(v:val, "result")'), 'v:val.result')
-          let request.errors = map(filter(copy(request.results), 'has_key(v:val, "error")'), 'v:val.error')
-          call call(self[request.cb], [request], self)
+      call remove(request.waiting_for, a:event.sender)
+
+      for cell_id in get(a:event, 'wait_for', [])
+        if has_key(request.replies_to_be_waited_for, cell_id)
+          call add(request.results, remove(request.replies_to_be_waited_for, cell_id))
+        else
+          call add(request.wait_for, cell_id)
         endif
+      endfor
+      if has_key(a:event, 'result') || has_key(a:event, 'error')
+        call add(request.results, a:event)
       endif
     else
       let request.replies_to_be_waited_for[a:event.sender] = a:event
     endif
+
+    call self.__check_request_finished(request)
   endf
 
+
 endf
-
-" fun! cells#traits#Hooks(cell) abort
-"   " add hooks feature to cell
-"   " for instance a trait could require cleanup when killed
-"   " so allow each extension of a cell to receive a killed hook call
-
-"   let a:cell.hooks = get(a:cell, 'hooks', {})
-
-"   fun a:cell.killed()
-"     call self.call_hooks('killed')
-"   endf
-
-"   fun! a:cell.call_hooks(name, args) abort
-"     for k in get(self.hooks, a:name, [])
-"       call call(self[k], a:args, self)
-"     endfor
-"   endf
-
-"   let  cell.set_properties2 = cell.set_properties
-"   fun! cell.l_set_properties(event) abort
-"     call self.set_properties2(a:event.properties)
-"     call self.call_hooks('properties_changed')
-"   endf
-
-"   return a:cell
-" endf

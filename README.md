@@ -49,7 +49,7 @@ WHAT IS A CELL?
 ===================
 A cell has
   - has an id such as 'viml:20'
-  - A purpose such as "I provide signs"
+  - At least one purpose such as "I provide signs"
   - can talk to other cells by receiving and sending events
 Some porcelain is be provided for making async conversations easier
 
@@ -83,6 +83,44 @@ Special keys:
 
   sender: <cell-id>, for instance when sending replies
 
+  wait_for: [] list of cell_ids to be wait for till the result is complete (async replies)
+  results:  [] list you can add results to (immediate replies). The result should have the form {'result/error': ..}
+
+  A listening event can return 
+    "wait_for" : [<my-id>]
+    "results"  : [<my-id>]
+
+  rather than sending an event.
+
+EVENTS VIML implementation (autoload/cells.vim (API) and autoload/cells/viml.vim)
+===================
+
+let cell = cells#viml#Cell({}) " this will already register the cell globally
+
+" listen to event_name
+fun! cell.l_<event_name>(event)
+  call self.reply_now(a:event, <result>)
+
+  " or if you want to reply later:
+  call add(a:wait_for, self.id) " notify that a reply will happen
+  call self.async_reply(a:event, <result>) " send the reply
+  call self.async_error(a:event, <error>) " send an error, because the asking cell is waiting for any reply
+endf
+
+" 
+fun! cell.ask_and_wait_sample()
+  call self.ask({'event': {'type': '...', )}, 'cb': 'process_result'})
+endf
+fun! cell.process_result(request)
+  echoe string(a:request.results_good)
+endf
+
+" send an event, tell everybody that a cell is new:
+call g:cells.emit({'type': 'announce_new_cell', 'cell': cell})
+
+
+
+
 SPECIAL EVENTS / CONCEPTS / COMMON FEATURES
 ============================================
 
@@ -96,6 +134,7 @@ add a 'request_id' which if present should be included in the reply
 " core events which should be implemented by each target
   { 'type': 'emit', }  emit event to all cells, also see emit_to_one
   { 'type': 'cell_collections', }   => reply {'prefix': ..., 'details': ...}
+  { 'type': 'cell_collection_added'}   => reply {'name'}
   { 'type': 'cell_kill', selector: ..} # kills cells matching selector
   { 'type': 'cell_list', 'selector': ... } # reply list of ids of cells matching selector, see cells#viml#CellsBySelector
 
@@ -141,8 +180,16 @@ add a 'request_id' which if present should be included in the reply
 
   reply => 
   [
-    { 'column': .., 'context': 'default', 'completions': [{'word', 'description', 'continuation' : '..', 'certainity' => float}] }
+    { 'column': .., 'context': 'default', 'completions': [{'word', 'word_propability', 'description', 'continuation' : '..', 'certainity' => float}] }
   ]
+
+  word: the word to be inserted
+  word_propability: if you want to do probability analysis use this instead
+      (for instance php has two different kinds of foreach you may want to
+      differentiate in word such as for_k for_v but know how ofte its used by looking
+      at word foreach instead)
+  description:
+  .. see completions keys
 
   Set context to something different to 'default' if you think you found a
   context making this completion much more likely to match, such as after
@@ -211,35 +258,30 @@ TODO:
   " {'type': 'commands_changed', 'types': ['v', 'n', 'b', 'i']}
   templates => completion with continuation
 
-
-EVENT REPLIES (MAP REDUCE)
+EVENT REPLIES
 ==========================
 Its ugly: Multiple processes will be running its required to keep track of
 which replies to wait for.
 
-Sample implementation see cells#viml#CollectRepliesCell(cell).
-See key reply_to above
+See autoload/cells/tests.vim -> ask_all() which serves as sample.
 
+CELL COLLECTIONS
+=========================
+Each language has its own set of cells and some cells taking care
+of passing communication between them.
 
-VIML sample implementation:
+Care has to be taken that the same event doesn't cause a loop when setting
+up the event forwarding.
 
-
-viml``
-    let collector = cells#viml#CellReplyCollector({})
-    fun! collector.killed() abort
-      echoe self.results
-    endf
-    let a:event.reply_to = a:reply_collector_cell_id
-    call cells#emit({'type': 'completions', 'reply_to': collector.id, 'timeout_sec': 40}, a:selector)
-    If you want to reduce on each step overwrite collector.result()
-``
+The recommended way is to have all collections forward the events to one main
+collection which forwards the events to all collections except the
+origin_network.
 
 CELL FEATURES (to be extendended)
 ====================================================
 Maybe you could even call it 'interface' and knows which requests to respond to
 
 cell features / interface (can be extended
-
 
 IDEAS:
   * references of different kinds (find CSS tags matching current HTML tag/ references in code)
@@ -327,14 +369,6 @@ cell features / interface (can be extended)
     expected result:
     [{<cell_id>, 'exists': true/false, 'path': ...}]
 
-  * completions(fast/slow)
-    [{<cell_id>', type, text, <opts> }]
-
-      opts can be 
-      prefix: only showing completions starting with prefix
-      filter-regex: only keep items matching this regex
-                    A completion strategy could be 
-
   * templates()
 
   * debug lines ?
@@ -348,6 +382,8 @@ cell features / interface (can be extended)
   * provide_indentation_settings_for_file()
     purpose: figure out indentation based on your rules
     call the first time ou enter indent mode
+
+  * syntax_checkers, for instance py2 & py3 at the same time!
 
 IDEAS:
   * virtual content provider for things like VCS files based on url, or run executable ?
@@ -384,6 +420,14 @@ RULES OF THUMB
 
 TODO
 ======
+  * implementation about 'accessing editor features' such as get lines, get
+    cursor position to be independent of editor implementation.
+
+  * goto ID like thing showing full lines -> this works good enough like tags
+    (search all files in project), but allow configurating files to be searched by glob patterns
+
+  * kind of Buffer interface
+
   * implement remote RPC version ?
 
   * debug lines ?
@@ -419,3 +463,12 @@ TODO
   * footer_info()
     [{<cell_id>, 'text': .. 'prio': .., 'source': ...}]
 
+  * move vim-dev-plugin completion into a cell as sample viml completion and
+    goto thing at cursor / definition ?
+
+  * Announce at Reddit after some Emacs support has been written?
+
+TIPS:
+=====
+  Debbungi VimL See
+  if cells#examples#vim_dev#GotoFirstError() | cfirst | endif

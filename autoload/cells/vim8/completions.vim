@@ -3,6 +3,20 @@ if !exists('g:cells') | let g:cells = {} | endif |let s:c = g:cells
 " VimL implementation of completion setting completefunc and allowing to use
 " m-<n> to select <n>th entry fast
 
+fun! cells#vim8#completions#EventData(event)
+  " expected event keys
+  "  event['position'] = getpos('.')
+  "  event['position'] = getpos('.')
+  let event = a:event
+  let col_m1 = event.position[3]
+  let line   = getline('.')
+  let event  = event
+  let event['type'] = 'completions'
+  let event['line_split_at_cursor'] = [line[0: event.position[2]-1], line[event.position[2]:]]
+  let event['match_types'] = ['prefix', 'ycm', 'camel_case_like']
+  return event
+endf
+
 fun! cells#vim8#completions#Trait(cell) abort
 
   let a:cell.limit = get(a:cell, 'limit', 1000)
@@ -17,22 +31,15 @@ fun! cells#vim8#completions#Trait(cell) abort
   call cells#traits#Ask(a:cell)
 
   fun! a:cell.l_complete(event) abort
-    let self.position = get(a:event, 'position', getpos('.'))
-    let col_m1 = self.position[3]
-    let line = getline('.')
-    
-
     " ask cells identified by selector for completions and show popup
-    let event = {}
-    let event['type'] = 'completions'
-    let event['line_split_at_cursor'] = [line[0: self.position[2]-1], line[self.position[2]:]]
-    let event['position'] = self.position
-    let event['limit'] = self.limit
-    let event['match_types'] = ['prefix', 'ycm', 'camel_case_like']
-    call self.cancel_ask({'type': 'completions', 'event': event, 'cb': 'completions_received', 'selector': get(a:event, 'selector', 'all')})
+    let self.position = get(a:event, 'position', getpos('.'))
+    let event = {'position': self.position, 'limit': self.limit}
+    let event = cells#vim8#completions#EventData(event)
+
+    call self.cancel_ask('completions_received', {'type': 'completions', 'event': event})
   endf
 
-  " TODO: 
+  " TODO:
   fun! a:cell.completions_received(request) abort
     if self.position != getpos('.')
       echom 'aborting completion because cursor moved'
@@ -40,14 +47,14 @@ fun! cells#vim8#completions#Trait(cell) abort
     endif
 
     let all = cells#util#Flatten1(a:request.results_good)
-    let context_default = filter(copy(all), 'get(v:val, "context", "default") == "default"')
-    let context_other   = filter(copy(all), 'get(v:val, "context", "default") != "default"')
+    " debug let context_default = filter(copy(all), 'get(v:val, "context", "default") == "default"')
+    " let context_other   = filter(copy(all), 'get(v:val, "context", "default") != "default"')
     let column = min(map(copy(all), 'v:val.column'))
 
     let completions = []
 
     for i in all
-      let pref = a:request.event.line_split_at_cursor[0][column:i.column-1]
+      let pref = a:request.event.event.line_split_at_cursor[0][column:i.column-1]
       if pref != ""
         for c in i.completions
           let c.word = pref. c.word
@@ -59,7 +66,7 @@ fun! cells#vim8#completions#Trait(cell) abort
     let s:c.current_completions = {'completions':  completions, 'column': column, 'pos': self.position}
 
     if len(self.goto_mappings) > 0
-      call cells#Emit({'type': 'mappings_changed', 'sender': self.id})
+      call g:cells.emit({'type': 'mappings_changed', 'sender': self.id})
       let nr = 1
       for x in self.goto_mappings
         if len(s:c.current_completions.completions) <= nr | break | endif
@@ -86,7 +93,7 @@ fun! cells#vim8#completions#Trait(cell) abort
   endf
 
   fun! a:cell.clear_mappings()
-    call cells#Emit({'type': 'mappings_changed', 'sender': self.id})
+    call g:cells.emit({'type': 'mappings_changed', 'sender': self.id})
 
     for lhs in  self.complete_ends
       exec 'iunmap <buffer> '.lhs
@@ -104,17 +111,14 @@ fun! cells#vim8#completions#Trait(cell) abort
       let s:c.have_completions = has_key(s:c, 'current_completions') &&  s:c.current_completions.pos == getpos('.')
 
       if s:c.have_completions
-        echom 'returning culmn '.s:c.current_completions.column
         return s:c.current_completions.column-1
       else
         " vim sets col after returning .. ?
-        call cells#Emit({'type': 'complete', 'position': getpos('.')})
+        call g:cells.emit({'type': 'complete', 'position': getpos('.')})
         return 0
       endif
     else
       if s:c.have_completions
-        echom 'base '.a:base
-
         call self.setup_mappings()
         return s:c.current_completions.completions
       else

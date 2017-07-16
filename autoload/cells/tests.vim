@@ -1,118 +1,238 @@
-fun! cells#tests#TestVimLEvent() abort
-  " SIMPLE TEST: create cells, emit event, wait for reply, check replies, kill cells
-  let cell1 = cells#viml#Cell({})
-  fun! cell1.l_reply1(event)
-    call self.reply_result(a:event, 1)
-  endf
+" test viml implementation
 
-  let cell2 = cells#viml#Cell({})
-  fun! cell2.l_reply1(event)
-    call self.reply_result(a:event, 2)
-  endf
-
-  let cell3 = cells#viml#Cell({})
-  fun! cell3.l_reply1(event)
-    call self.reply_result(a:event, 3)
-  endf
-
-  let celle = cells#viml#Cell({})
-  fun! celle.l_reply1(event)
-    call self.reply_error(a:event, 'manual error')
-  endf
-
-  " emit test event and wait for results
-  let cell_c = cells#viml#CellReplyCollector({})
-  fun! cell_c.killed()
-    let g:results = self.results
-  endf
-
-  call cells#Emit({'type': 'reply1', 'reply_to': cell_c.id})
-  let results = map(filter(copy(g:results), 'has_key(v:val, "result")'), 'v:val.result')
-  let errors  = map(filter(copy(g:results), 'has_key(v:val, "error")' ), 'v:val.error')
-  if results != [1,2,3] | throw "results 1,2,3 expeted" | endif
-  if len(errors) != 1 | throw "one error expected" | endif
-
-  call cell1.kill()
-  call cell2.kill()
-  call cell3.kill()
-  call celle.kill()
-  unlet g:results
+fun! cells#tests#RunAllTests() abort
+  let tests = []
+  call add(tests, 'cells#tests#TestAskReply')
+  call add(tests, 'cells#tests#SelectorByIdVim')
+  let tests = []
+  call add(tests, 'cells#tests#TestAskReplyVimAskingPy')
+  " call add(tests, 'cells#tests#TestAskReplyPyAskingVim')
+  call cells#tests#RunTests(tests)
 endf
 
-fun! cells#tests#TraitTestMappings(cell) abort
-  fun! a:cell.l_mappings(event)
-    let mappings = [
-          \ {'scope': 'global',                 'mode': 'normal', 'lhs': '<f2>', 'emit_event': {'type': 'do_echo', 'text': 'scope=g f2 was hit'}},
-          \ {'scope': 'bufnr:4',                'mode': 'normal', 'lhs': '<f3>', 'emit_event': {'type': 'do_echo', 'text': 'scope=g f3 was hit'}},
-          \ {'scope': 'filename_regex:\.js$',   'mode': 'normal', 'lhs': '<f4>', 'emit_event': {'type': 'do_echo', 'text': 'scope=g f4 was hit'}},
-          \ ]
+fun cells#tests#RunTests(list) abort
+  " simple tests
+  let v:errors = []
 
-    call self.reply_result(a:event, mappings)
-  endf
-  fun! a:cell.l_do_echo(event) abort
-    echom a:event.text
-  endf
-  call cells#Emit({'type': 'mappings_changed', 'sender': a:cell.id})
-  return a:cell
-endf
+  let tests = []
+  for t in a:list
+    echom ' == RUNNING TEST == '.t
+    let v:errors = []
+    let test = call(t, [])
+    if has_key(test, 'up') | call test.up() |endif
+    call test.run()
+    if has_key(test, 'down') | call test.down() |endif
 
-fun! cells#tests#TraitTestSigns(cell) abort
-  fun! a:cell.l_signs(event) abort
-    call self.reply_result(a:event, [{'bufnr': 1, 'name': 'test', 'category' : 'test', 'definition': 'text=-', 'signs': [{'line': 3, 'comment': 'comment about sign - on line 3' }]}])
-  endf
-  call cells#Emit({'type': 'signs_changed', 'sender': a:cell.id})
-  return a:cell
-endf
-
-fun! cells#tests#TraitTestQuickfix(cell) abort
-  fun! a:cell.l_quickfix_list(event) abort
-    call self.reply_result(a:event, {'truncated': v:false, 'list': [{'bufnr': 1, 'text': 'error', 'col': 10, 'lnum': 5, 'type' : 'E'}]})
-  endf
-  call cells#Emit({'type': 'quickfix_list_available', 'sender': a:cell.id})
-  return a:cell
-endf
-
-" {{{
-
-fun! cells#tests#TraitTestCompletion(cell) abort
-
-  call cells#traits#Ask(a:cell)
-
-  fun! a:cell.l_completions(event)
-    " sample implemenattion illustrating how word completion within a buffer
-    " can be done showing words nearby the cursor rated higher
-    " implementing multiple match_types.
-
-    let word_before_cursor = matchstr(a:event.line_split_at_cursor[0], '\zs\S*$')
-
-    let words = {}
-    let linenr = 1
-
-    for w in split(join(getline(1, line('.'))," "),'[/#$|,''"`; \&()[\t\]{}.,+*:]\+')
-      if (w == word_before_cursor) | continue | endif
-      let line_diff = linenr - a:event.position[1]
-      if line_diff > 100
-        let certainity = 1
-      else
-        " words in lines nearby cursor are more important ..
-        let certainity = 1 + abs(100.0 - line_diff) / 500
-        if linenr > a:event.position[1]
-          " lines below cursor are less important than above cursor
-          let certainity = sqrt(certainity)
-        endif
+    for [k,v] in items(test.cases)
+      if !v
+        echoe 'test '.t.'->'.k.' failed'
       endif
-      let words[w] = {'word': w, 'certainity': certainity}
-      let linenr += 1
+    endfor
+    if len(v:errors) > 0
+      echoe v:errors
+    endif
+  endfor
+endf
+
+fun! cells#tests#TestAskReply() abort
+
+  let test = {}
+
+  fun! test.up() abort
+
+    let cell = cells#viml#Cell({}) " this will already register the cell globally
+
+    call cells#traits#Ask(cell)
+
+    let self.cell = cell
+    let self.cases = {}
+
+    " listen to event_name
+    fun! cell.l_listen1(event) abort
+      " reply immediately
+      call self.reply_now(a:event, 'listen1')
+    endf
+
+    fun! cell.l_listen2(event) abort
+      " reply by event (asyncchronously)
+      call add(a:event.wait_for, self.id)
+      let self.listen2_event = a:event
+    endf
+    fun! cell._listen2_reply()
+      call self.async_reply(self.listen2_event, 'listen2')
+    endf
+
+    fun! cell.ask_all() abort
+      call self.ask('result_listen1', {'type': 'listen1'})
+      call self.ask('result_listen2', {'type': 'listen2'})
+      call self._listen2_reply()
+    endf
+
+    fun! cell.result_listen1(request) abort
+      let self.listen1_results = a:request.results_good
+    endf
+
+    fun! cell.result_listen2(request) abort
+      let self.listen2_results = a:request.results_good
+    endf
+
+  endf
+
+  fun! test.run() abort
+    call self.cell.ask_all()
+    let self.cases['listen1'] = self.cell.listen1_results == ['listen1']
+    let self.cases['listen2'] = self.cell.listen2_results == ['listen2']
+  endf
+
+  fun! test.down() abort
+    call self.cell.kill()
+  endf
+
+  return test
+endf
+
+fun! cells#tests#SelectorByIdVim() abort
+  let test = {}
+  let test.cases = {}
+
+  fun! test.run()
+    let cell1 = cells#viml#Cell({})
+    let cell2 = cells#viml#Cell({})
+
+    for cell in [cell1, cell2]
+      fun! cell.l_event(event)
+        let self.event = a:event
+      endf
     endfor
 
-    let completions = cells#util#match_by_type(values(words), word_before_cursor, a:event.match_types)
-    call self.reply_result(a:event, [{
-          \ 'column': a:event.position[2] - len(word_before_cursor),
-          \ 'completions' : completions
-    \ }])
+    call g:cells.emit({'type': 'event', 'selector' : {'id': cell1.id }})
+
+    let self.cases['1_hit']     =  has_key(cell1, 'event')
+    let self.cases['2_not_hit'] = !has_key(cell2, 'event')
+
+    for cell in [cell1, cell2] | call cell.kill() | endfor
   endf
 
-  return a:cell
+  return test
+endf
+
+
+fun! cells#tests#TestAskReplyVimAskingPy() abort
+
+  let test = {}
+  let test.cases = {}
+
+  fun! test.up() abort
+
+py << EOF
+
+class MyCell(cells.py.Cell):
+
+  def l_pylisten1(self, event):
+    self.reply_now(event, 'pylisten1')
+
+  def l_pylisten2(self, event):
+    event['wait_for'].append(self.id)
+    self.pylisten2_event = event
+
+  def _listen2_reply(self):
+    self.async_reply(self.pylisten2_event, 'pylisten2')
+
+mycell = MyCell()
+EOF
+  endf
+
+  fun! test.run() abort
+
+    let cell = cells#viml#Cell({})
+    echom 'test cell id' . cell.id
+    call cells#traits#Ask(cell)
+
+    fun! cell.result_pylisten1(request) abort
+      let self.pylisten1_results = a:request.results_good
+    endf
+
+    fun! cell.result_pylisten2(request) abort
+      let self.pylisten2_results = a:request.results_good
+    endf
+
+    call cell.ask('result_pylisten1', {'type': 'pylisten1'})
+    call cell.ask('result_pylisten2', {'type': 'pylisten2'})
+    py mycell._listen2_reply()
+
+    let self.cases['pylisten1'] = cell.pylisten1_results == ['pylisten1']
+    let self.cases['pylisten2'] = cell.pylisten2_results == ['pylisten2']
+
+    call cell.kill()
+    py mycell.kill()
+  endf
+
+  return test
+endf
+
+fun! cells#tests#TestAskReplyPyAskingVim() abort
+
+  let test = {}
+
+  fun! test.run() abort
+
+    let cell = cells#viml#Cell({}) " this will already register the cell globally
+
+    call cells#traits#Ask(cell)
+
+    let self.cell = cell
+    let self.cases = {}
+
+    " listen to event_name
+    fun! cell.l_listen1(event) abort
+      " reply immediately
+      call self.reply_now(a:event, 'listen1')
+    endf
+
+    fun! cell.l_listen2(event) abort
+      " reply by event (asyncchronously)
+      call add(a:event.wait_for, self.id)
+      let self.listen2_event = a:event
+    endf
+    fun! cell._listen2_reply()
+      call self.async_reply(self.listen2_event, 'listen2')
+    endf
+
+py << EOF
+
+class MyCell(cells.py.Cell):
+
+  def ask_all(self):
+      call self.ask('result_listen10', {'type': 'listen10'})
+      call self.ask('result_listen20', {'type': 'listen20'})
+      call self._listen2_reply()
+
+  def result_listen10(self, request):
+      self.listen10_results = request['results_good']
+
+  def result_listen20(self, request):
+      self.listen20_results = request['results_good']
+
+
+mycell = MyCell()
+
+mycell.ask_all()
+vim.eval('cell._listen2_reply()')
+
+# TEST
+cells.util.to_vim( 1 if mycell.listen10_results == ['listen10'] else 0)
+vim.eval('self.cases["listen10"] = g:to_vim')
+
+cells.util.to_vim(1 if mycell.listen20_results == ['listen20'] else 0)
+vim.eval('self.cases["listen20"] = %s')
+
+mycell.kill()
+
+EOF
+    call cell.kill()
+
+  endf
+
+  return test
 
 endf
-" }}}

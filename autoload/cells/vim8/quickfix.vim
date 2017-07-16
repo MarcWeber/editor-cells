@@ -6,7 +6,7 @@ fun! cells#vim8#quickfix#Trait(cell) abort
   let a:cell.limit = get(a:cell, 'limit', 1000)
 
   fun! a:cell.l_quickfix_list_available(event)
-    call self.ask({'event': {'type': "quickfix_list", 'sender': self.id, 'limit': self.limit+1}, 'cb': 'handle_qf_reply', 'selector': {'id': a:event.sender}})
+    call self.ask('handle_qf_reply', {'type': "quickfix_list", 'sender': self.id, 'limit': self.limit+1, 'selector': {'id': a:event.sender}})
   endf
 
   fun! a:cell.handle_qf_reply(request)
