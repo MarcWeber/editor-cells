@@ -18,6 +18,7 @@ fun! cells#util#Union(lists) abort
 endf
 
 fun! cells#util#Flatten1(lists) abort
+  let g:lists = a:lists
   let r = []
   for l in a:lists
     let r += l
@@ -106,7 +107,13 @@ fun! cells#util#Call(f, args) abort
 endf
 
 fun! cells#util#EmitReturn(event) abort
-  call g:cells.emit(a:event)
+  try
+    call g:cells.emit(a:event)
+  catch /.*/
+    echom 'exception '.v:exception
+    echom 'exception '.v:throwpoint
+    throw v:exception
+  endtry
   return a:event
 endf
 

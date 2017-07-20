@@ -50,10 +50,14 @@ fun! cells#traits#Ask(cell) abort
     let self.requests[request.event.request_id] = request
 
     call g:cells.emit(a:event)
-    for id in a:event.wait_for
-      let request.waiting_for[id] = 1
-    endfor
     let request.results = a:event.results
+    for cell_id in a:event.wait_for
+      if has_key(request.replies_to_be_waited_for, cell_id)
+        call add(request.results, remove(request.replies_to_be_waited_for, cell_id))
+      else
+        let request.waiting_for[cell_id] = 1
+      endif
+    endfor
     call self.__check_request_finished(request)
     return a:event.request_id
   endf
@@ -84,7 +88,7 @@ fun! cells#traits#Ask(cell) abort
         if has_key(request.replies_to_be_waited_for, cell_id)
           call add(request.results, remove(request.replies_to_be_waited_for, cell_id))
         else
-          call add(request.wait_for, cell_id)
+          let  request.waiting_for[cell_id] = 1
         endif
       endfor
       if has_key(a:event, 'result') || has_key(a:event, 'error')

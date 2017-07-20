@@ -5,7 +5,7 @@ set hidden
 exec 'set rtp+='.fnameescape(expand('<sfile>:p:h'))
 
 call cells#viml#CellCollection()
-call cells#viml#CoreEvents()
+call cells#viml#EditorCoreInterface()
 
 call cells#ProvideAPI()
 

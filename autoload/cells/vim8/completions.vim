@@ -24,7 +24,7 @@ fun! cells#vim8#completions#Trait(cell) abort
 
   let s:c.completion_cell = a:cell
 
-  let a:cell.complete_ends = get(a:cell, 'complete_ends', ['<space>'])
+  let a:cell.complete_ends = get(a:cell, 'complete_ends', ['<space>', '<cr>'])
   set omnifunc=cells#vim8#completions#CompletionFunction
 
 
@@ -50,9 +50,7 @@ fun! cells#vim8#completions#Trait(cell) abort
     " debug let context_default = filter(copy(all), 'get(v:val, "context", "default") == "default"')
     " let context_other   = filter(copy(all), 'get(v:val, "context", "default") != "default"')
     let column = min(map(copy(all), 'v:val.column'))
-
     let completions = []
-
     for i in all
       let pref = a:request.event.event.line_split_at_cursor[0][column:i.column-1]
       if pref != ""
@@ -63,6 +61,7 @@ fun! cells#vim8#completions#Trait(cell) abort
       let completions += i.completions
     endfor
     call sort(completions, {a, b -> a.certainity - b.certainity > 0 ? 1 : -1})
+
     let s:c.current_completions = {'completions':  completions, 'column': column, 'pos': self.position}
 
     if len(self.goto_mappings) > 0

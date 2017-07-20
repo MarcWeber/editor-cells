@@ -14,7 +14,7 @@ exec 'set rtp+='.fnameescape(expand('<sfile>:p:h'))
 " VimL emit implementation
 call cells#viml#CellCollection()
 " Editor core events implementation
-call cells#viml#CoreEvents()
+call cells#viml#EditorCoreInterface()
 call cells#ProvideAPI()
 
 " PY <-> PY3 <-> VIM
@@ -54,7 +54,16 @@ fun! SetupVimTestCells()
 endf
 
 
+let s:this_dir = expand('<sfile>:p:h')
+
 fun! SetupPyTestCells()
+
+  " provide list of filenames for CompletionBasedOnFiles
+  let c = cells#viml#Cell({})
+  fun! c.l_project_files(event)
+    call self.reply_now(a:event, cells#util#Flatten1(map([s:this_dir.'/**/*.vim', s:this_dir.'/**/*.py', s:this_dir.'/README.md'], 'split(glob(v:val), "\n")')))
+  endf
+
 if has('python')
 py << END
 import cells.examples
@@ -62,6 +71,7 @@ cells.examples.Completion() # works (except camel case like matching
 cells.examples.Mappings() # TODO
 cells.examples.Signs()    # TODO
 cells.examples.Quickfix() # TODO
+cells.examples.CompletionBasedOnFiles() # TODO
 END
 endif
 endf
@@ -69,5 +79,7 @@ endf
 " echom 'use the following examples call SetupVimTestCells | call SetupVimTestCells()'
 
 
-" if cells#vim_dev#GotoError('first') | cfirst | endif
+if cells#vim_dev#GotoError('first') | cfirst | endif
 nnoremap <esc>. :cnext<cr>
+
+command First call cells#vim_dev#GotoError('first')

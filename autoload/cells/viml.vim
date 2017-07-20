@@ -114,6 +114,8 @@ fun! cells#viml#CellsBySelector(selector) abort
       else
         return []
       endif
+    elseif  has_key(a:selector, 'ids')
+      return map(filter(copy(a:selector.ids), 'has_key(g:cells.cells, v:val)'), 'g:cells.cells[v:val]')
     elseif has_key(a:selector, 'listens_to')
       let l_listens_to = 
       return map(filter(copy(s:c.cells), 'has_key(v:val, '.string('l_'.a:selector.listens_to).')'), 'v:val.id')
@@ -147,24 +149,78 @@ fun! cells#viml#CellCollection()
   return c
 endf
 
-fun! cells#viml#CoreEvents() abort
+fun! cells#viml#EditorCoreInterface() abort
+
+  let c = cells#viml#Cell({'purpose': 'core interface'})
+
   augroup CELLS_VIM8_CORE_EVENTS
   au!
-  au BufRead,BufNewFile * call g:cells.emit({'type': 'bufnew', 'bufnr': bufnr('%'), 'filename': bufname('%')})
-  au BufEnter * call g:cells.emit({'type': 'bufenter', 'bufnr': bufnr('%'), 'filename': bufname('%')})
+  exec 'au BufNew    * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufnew",    "bufnr": bufnr("%"), "filename": bufname("%")})'
+  exec 'au BufRead   * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufread",   "bufnr": bufnr("%"), "filename": bufname("%")})'
+  exec 'au BufEnter  * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufenter",  "bufnr": bufnr("%"), "filename": bufname("%")})'
+  exec 'au BufUnload * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufunload", "bufnr": bufnr("%"), "filename": bufname("%")})'
   augroup end
+
+  fun! c.l_editor_buffers(event)
+    let buffers = []
+    let currentnr = bufnr('%')
+
+    for bufnr in range(1, bufnr('$'))
+      if !bufexists(bufnr) || !bufwinnr(bufnr) | continue | endif
+      let b = {}
+      let b['bufid'] = bufnr
+      let b['filename'] = expand('%')
+      let b['modify_state'] = 'todo'
+      if bufnr == currentnr
+        let current = b
+      endif
+      call add(buffers, b)
+    endfor
+
+    call self.reply_now(a:event, {'buffers': buffers, 'current': b})
+  endf
+
+  fun! c.l_editor_buflines(event)
+    if has_key(a:event, 'from_line') || has_key(a:event, 'to_line')
+      call self.reply_now(a:event, getbufline(get(a:event, 'bufid', '%') ,get(a:event, 'from_line', 1), get(a:event, 'to_line', line('.'))))
+    endif
+  endfun
+
+  fun! c.__emit_buffer_event(event_data)
+    let a:event_data.selector = {'ids': filter(keys(self.subscriptions), 'has_key(self.subscriptions[v:val], a:event_data.type)') }
+    call g:cells.emit({'type': a:event_data.type})
+  endf
+
+  let c.subscriptions = {}
+
+  fun! c.l_editor_features(event)
+    call self.reply_now(a:event, ['editor_bufnew', 'editor_bufread', 'editor_bufunload', 'editor_bufenter'])
+  endf
+
+  fun! c.l_editor_subscribe(event)
+    let self.subscriptions[a:event.sender] = event['subscriptions']
+  endf
+
+  fun! c.l_cell_list(event)
+    call self.async_reply(map(copy(cells#viml#CellsBySelector(a:event.selector)), 'v:val.id'))
+  endf
+
 endf
 
 let s:path = expand('<sfile>:p:h:h:h')
 fun! cells#viml#setupPython(py_cmd) abort
   if has(a:py_cmd)
-    execute a:py_cmd.' import sys'
-    execute a:py_cmd.' import vim'
-    execute a:py_cmd.' sys.path.append(vim.eval("s:path")+"/site-packages/")'
-    execute a:py_cmd.' import cells'
-    execute a:py_cmd.' import cells.util'
-    execute a:py_cmd.' import cells.py'
-    execute a:py_cmd.' cells.py.cell_collection.prefix = vim.eval("a:py_cmd")'
+    let py = [
+          \ 'import sys',
+          \ 'import vim',
+          \ 'sys.path.append(vim.eval("s:path")+"/site-packages/")',
+          \ 'import cells',
+          \ 'import cells.util',
+          \ 'import cells.py',
+          \ 'import traceback',
+          \ 'cells.py.cell_collection.prefix = vim.eval("a:py_cmd")'
+          \]
+    execute a:py_cmd.' '.join(py, "\n")
     " PY event -> Vim
     execute a:py_cmd.' cells.py.CellPy()'
     execute a:py_cmd.' cells.py.CellPyEventToVim()'
@@ -185,7 +241,7 @@ fun! cells#viml#vim8_VimEventToPy(py_cmd) abort
         let event['results'] = []
         let event['wait_for'] = []
       endif
-      execute self.py_cmd.' event=vim.eval("event"); cells.cell_collection.emit_selector(event); cells.util.to_vim(event)'
+      execute self.py_cmd.'  cells.util.to_vim(cells.util.emit_return(vim.eval("event")))'
       for k in ['wait_for', 'results']
         if has_key(g:to_vim, k)
           let a:event.event[k] += g:to_vim[k]

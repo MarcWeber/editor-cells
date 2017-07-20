@@ -1,8 +1,8 @@
-editor-cell / GOALS
-=============================
-There important pieces you start loving you want to use in all editing environments.
+editor-cell (Ending part of the editor war / like evolution)
+=============================================
+There important pieces you start loving you want to use in all editing
+environments.
 BUT: They are written in Java,C,JS,ELisp (Eclipse, (Neo)Vim, vscode, Emacs, ..)
-
 Its even worse: VimL is slow, NeoVim introduces its own RPC, ...
 
 So how to reuse your code pieces (=cells) ?
@@ -10,9 +10,9 @@ Redefine your interfaces as events
 Add code for editors to use it.
 
 One cell says:
-"I have an compilation result output - who wants to show it?"
+  "I have an compilation result output - who wants to show it?"
 Another cell replies
-"My task is to show it, so send details to me"
+ "My task is to show it, so send details to me"
 
 Same about signs, completions, ..
 
@@ -20,7 +20,6 @@ So you setup your system the way you want !
 If you don't like an implementation replace it.
 
 CAUTION: The code may still change ..
-
 
 BUT WHAT IS IMPORTANT TO YOU
 ==============================
@@ -130,7 +129,6 @@ add a 'request_id' which if present should be included in the reply
 
 " internal use:
 
-
 " core events which should be implemented by each target
   { 'type': 'emit', }  emit event to all cells, also see emit_to_one
   { 'type': 'cell_collections', }   => reply {'prefix': ..., 'details': ...}
@@ -158,7 +156,7 @@ add a 'request_id' which if present should be included in the reply
 { 'type': 'related_files', 'type': 'close/loose' } 
   -> [{<cell_id>, 'exists': true/false, 'path': ...}]
 
-" === completions
+# cell events completion
   There are some very strong contexts such as completing after 'this.' in OO
   languages which should block other completions eventually, how to implement it?
   Use all completions all the time? I don't know yet
@@ -202,16 +200,16 @@ add a 'request_id' which if present should be included in the reply
   <action>: action which can be run
 
 
-" === filetype
+# cell events filetype
 {' 'type': 'ftdetect' }
 => reply 'js' or such
   
-" === CORE EDITOR EVENTS being close to au triggers
+# cell events core editor events
 { 'type': 'bufenter', 'bufnr': .., 'filename': .. } # au trigger: BufEnter
 { 'type': 'bufnew', 'bufnr': .., 'filename': .. }   # au triggers: BufNewFile,BufRead
 { 'type': 'filetype', 'bufnr': .., 'filename': .. } # ....
 
-" === mappings
+# cell events mappings
 A cell just tells "I have mappings to be mapped" using the mappings_changed event.
 modes: v(isual) n(ormal) i(insert)
 Scopes:
@@ -237,13 +235,18 @@ event thus can unmap as neccessary
 
 Example implementation see autoload/cells/vim8/mappings.vim
 
-" === signs
+# cell events project
+  {'type': 'project_files'}
+  return list of files belonging to project
+  -> ['file1', 'file2']
+
+# cell events signs
 {'type': 'signs_changed', 'sender': 'cell-id'}
 {'type': 'signs',  'limit': 500, 'for_buffers': [{bufnr: ..,  expanded: .. , name: ..}] }
 => [{'bufnr': bufnr, 'name': '', 'definition': 'text=-', 'catgeory': 'fooo', 'signs': [{line, comment}] ]
 Example implementation see autoload/cells/vim8.vim and autoload/cells/tests.vim
 
-" === quickfix
+# cell events quickfix
 {'type': 'quickfix_list_available', 'sender': 'cell-id'}
 {'type': 'quickfix_list',  'limit': 500 }
   => {'list': see :h setqflist, 'truncated': true/false}
@@ -257,6 +260,24 @@ TODO:
   " {'type': 'commands', 'types': ['v', 'n', 'b', 'i']}
   " {'type': 'commands_changed', 'types': ['v', 'n', 'b', 'i']}
   templates => completion with continuation
+
+
+# CORE EDITOR API which might be implemented by multiple editors
+Example implementation for Vim see cells#viml#EditorCoreInterface()
+
+{ 'type': 'editor_features' } # reply with list of features the editor implementation supports
+{ 'type': 'editor_subscribe', 'subscriptions': {'name' : {}, 'name': {}} } # subscribe to features / events
+{ 'type': 'editor_buffers', 'keys': ['id', 'filename', 'modify_state'] } # subscribe to features / events
+  -> reply { 'buffers': [{'id': .., 'filename': ..}, 'modify_state': }]}
+
+features:
+  ['editor_bufopen', 'editor_bufclose', 'editor_buf_written', 'editor_buf_cursor_pos']
+   {"type': 'editor_bufnew',     'bufid': <bufid>, 'filename'}
+   {"type': 'editor_bufread',     'bufid': <bufid>, 'filename'}
+   {"type': 'editor_bufclose',    'bufid': <bufid>, 'filename'}
+   {"type': 'editor_buf_written', 'bufid': <bufid>, 'filename'}
+   {"type': 'editor_buf_changed', 'bufid': <bufid>, 'filename'}
+   # {"type': 'buf_cursor_pos',     'bufid': <bufid>, 'filename'} TODO
 
 EVENT REPLIES
 ==========================
@@ -398,7 +419,7 @@ IDEAS:
 progress implementation
 
 BEST PRACTISES WRITING VIML CELLS / VIML implementation
-==================================
+=======================================================
 You can listen to events by implementing fun! cell.l_<event_type>(event) | endf
 
 There are two ideas behind traits
@@ -413,6 +434,12 @@ cell.
 Events might be serialized - thus try to limit size. Thus if you have
 quickfix/sign/completion lists think about whether limiting to 1000 entries
 does make sense.
+
+IMPLEMENTATIONS / COMPLETIONS
+==============================
+completion based on current buffer: cells#examples#TraitTestCompletion site-packages/cells/examples.py
+
+completions based on words found in all files belonging to open buffers / files of project
 
 RULES OF THUMB
 ===============
@@ -468,7 +495,14 @@ TODO
 
   * Announce at Reddit after some Emacs support has been written?
 
+  * replace bufnr by bufid beacuse bufnr is special to Vim
+
 TIPS:
 =====
   Debbungi VimL See
   if cells#examples#vim_dev#GotoFirstError() | cfirst | endif
+
+
+TODOS/ LINKS
+============
+  https://www.semanticscholar.org/paper/Contextual-Code-Completion-Using-Machine-Learning-Das-Shah/3d426d5d686db3dfa5cad88dbbf0bcf443828cf6

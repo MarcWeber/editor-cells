@@ -23,7 +23,6 @@ endf
 
 " optional arg: if true then append \n to , of top level dict
 fun! cells#json#Encode(thing, ...)
-  echom string(a:thing)
   return cells#json#Encode2(a:thing)
 endf
 fun! cells#json#Encode2(thing, ...)
