@@ -13,15 +13,18 @@ fun! cells#vim8#completions#EventData(event)
   let event  = event
   let event['type'] = 'completions'
   let event['line_split_at_cursor'] = [line[0: event.position[2]-1], line[event.position[2]:]]
-  let event['match_types'] = ['prefix', 'ycm', 'camel_case_like']
   return event
 endf
 
+fun! cells#vim8#completions#Compare(a, b)
+  let asm = has_key(a:a, 'strong_match')
+  let bsm = has_key(a:b, 'strong_match')
+
+  return ((asm == bsm) ? (a:a.certainity - a:b.certainity > 0) : ( asm - bsm)) ? -1 : 1
+endf
+
 fun! cells#vim8#completions#Trait(cell) abort
-
-  let a:cell.limit = get(a:cell, 'limit', 1000)
   let a:cell.goto_mappings = get(a:cell, 'goto_mappings', map(range(1,9)+["0"], "v:val"))
-
   let s:c.completion_cell = a:cell
 
   let a:cell.complete_ends = get(a:cell, 'complete_ends', ['<space>', '<cr>'])
@@ -33,7 +36,7 @@ fun! cells#vim8#completions#Trait(cell) abort
   fun! a:cell.l_complete(event) abort
     " ask cells identified by selector for completions and show popup
     let self.position = get(a:event, 'position', getpos('.'))
-    let event = {'position': self.position, 'limit': self.limit}
+    let event = {'position': self.position, 'limit': a:event.limit, 'match_types' : a:event.match_types}
     let event = cells#vim8#completions#EventData(event)
 
     call self.cancel_ask('completions_received', {'type': 'completions', 'event': event})
@@ -47,10 +50,10 @@ fun! cells#vim8#completions#Trait(cell) abort
     endif
 
     let all = cells#util#Flatten1(a:request.results_good)
-    " debug let context_default = filter(copy(all), 'get(v:val, "context", "default") == "default"')
-    " let context_other   = filter(copy(all), 'get(v:val, "context", "default") != "default"')
     let column = min(map(copy(all), 'v:val.column'))
-    let completions = []
+
+    let completions = {}
+
     for i in all
       let pref = a:request.event.event.line_split_at_cursor[0][column:i.column-1]
       if pref != ""
@@ -58,23 +61,34 @@ fun! cells#vim8#completions#Trait(cell) abort
           let c.word = pref. c.word
         endfor
       endif
-      let completions += i.completions
+
+      for c in i.completions
+        if ! has_key(completions, c.word) || cells#vim8#completions#Compare(c, completions[c.word]) > 0
+          let completions[c.word] = c
+        endif
+      endfor
     endfor
-    call sort(completions, {a, b -> a.certainity - b.certainity > 0 ? 1 : -1})
+
+    " sorty by 1) strong_match 2) certainity
+
+    let completions = sort(values(completions), 'cells#vim8#completions#Compare')
+
+    let copmletions = completions[0:self.limit]
 
     let s:c.current_completions = {'completions':  completions, 'column': column, 'pos': self.position}
 
     if len(self.goto_mappings) > 0
       call g:cells.emit({'type': 'mappings_changed', 'sender': self.id})
-      let nr = 1
+      let nr = 0
       for x in self.goto_mappings
-        if len(s:c.current_completions.completions) <= nr | break | endif
+        if len(s:c.current_completions.completions) -1 < nr | break | endif
         let c = s:c.current_completions.completions[nr]
-        let c['abbr'] = get(c, 'abbr', get(c, 'word')).' ['.self.goto_mappings[nr-1].']'
+        let c['abbr'] = get(c, 'abbr', get(c, 'word')).' ['.self.goto_mappings[nr].']'
         let nr += 1
       endfor
     endif
 
+    set cot=menu,menuone,noinsert,noselect
     call feedkeys("\<c-x>\<c-o>", 't')
   endf
 
@@ -113,7 +127,7 @@ fun! cells#vim8#completions#Trait(cell) abort
         return s:c.current_completions.column-1
       else
         " vim sets col after returning .. ?
-        call g:cells.emit({'type': 'complete', 'position': getpos('.')})
+        call g:cells.emit({'type': 'complete', 'position': getpos('.'), 'limit': self.limit, 'match_types' : ['prefix', 'ycm_like', 'camel_case_like', 'ignore_case', 'last_upper']})
         return 0
       endif
     else

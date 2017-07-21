@@ -36,7 +36,10 @@ endif
 
 " you can create multiple cells as you like listening to events
 call cells#viml#Cell({'traits': ['cells#vim8#logging#Trait']})
-call cells#viml#Cell({'traits': ['cells#vim8#ftdetect#Trait', 'cells#vim8#mappings#Trait', 'cells#vim8#signs#Trait', 'cells#vim8#quickfix#Trait', 'cells#vim8#completions#Trait']})
+call cells#viml#Cell({'traits': ['cells#vim8#ftdetect#Trait', 'cells#vim8#mappings#Trait', 'cells#vim8#signs#Trait', 'cells#vim8#quickfix#Trait']})
+let cell_completion = cells#viml#Cell({'traits': ['cells#vim8#completions#Trait']})
+let cell_completion.limit = 10
+
 " , 'cells#vim8#choice#Trait', 'cells#vim8#emit_to_one#Trait', 
 
 fun! SetupVimTestCells()
@@ -67,7 +70,7 @@ fun! SetupPyTestCells()
 if has('python')
 py << END
 import cells.examples
-cells.examples.Completion() # works (except camel case like matching
+# cells.examples.Completion() # works (except camel case like matching
 cells.examples.Mappings() # TODO
 cells.examples.Signs()    # TODO
 cells.examples.Quickfix() # TODO

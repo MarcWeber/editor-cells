@@ -50,14 +50,16 @@ fun! cells#examples#TraitTestCompletion(cell) abort
     let words = {}
     let linenr = 1
 
+    let nearby_cursor_lines = 100
+
     for w in split(join(getline(1, line('.'))," "),'[/#$|,''"`; \&()[\t\]{}.,+*:]\+')
       if (w == word_before_cursor) | continue | endif
       let line_diff = linenr - a:event.event.position[1]
-      if line_diff > 100
+      if abs(line_diff) > 100
         let certainity = 1
       else
         " words in lines nearby cursor are more important ..
-        let certainity = 1 + abs(100.0 - line_diff) / 500
+        let certainity = 1 + (1.0 - abs(line_diff) / nearby_cursor_lines)
         if linenr > a:event.event.position[1]
           " lines below cursor are less important than above cursor
           let certainity = sqrt(certainity)

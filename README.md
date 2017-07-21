@@ -173,7 +173,11 @@ add a 'request_id' which if present should be included in the reply
     'line_split_at_cursor':
     'position': # see getpos('.')
     'limit': 500
-    'match_types': ['prefix', 'ycm', 'camel_case_like']
+    'match_types': ['prefix', 'ignore_case', 'camel_case_like', 'last_upper']
+      prefix: chars have to match at the beginning
+      camel_case_like ccl -> camel_case_like
+      last_upper ccE -> camel_case_lik*e*
+      ycm_like  -> youcompleteme like (match chars in order)
   }
 
   reply => 
@@ -182,16 +186,22 @@ add a 'request_id' which if present should be included in the reply
   ]
 
   word: the word to be inserted
+
   word_propability: if you want to do probability analysis use this instead
       (for instance php has two different kinds of foreach you may want to
       differentiate in word such as for_k for_v but know how ofte its used by looking
       at word foreach instead)
+
   description:
   .. see completions keys
 
-  Set context to something different to 'default' if you think you found a
-  context making this completion much more likely to match, such as after
-  background-color in css
+  certainity:
+
+  strong_match: <reason> if set, should be shown first along with reason
+
+  contexts: a list of words associating the word with context which can later
+            be used for machine learning such as 'local var' or 'from scope'
+
 
   The code showing the completions might use this information for both:
   Calculating probabilities or disregarding other completions or showing them first
