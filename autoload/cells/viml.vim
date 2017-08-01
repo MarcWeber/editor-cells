@@ -33,6 +33,7 @@ fun! cells#viml#Cell(cell) abort
   fun! cell.__reply_event(event, reply_event)
     let a:reply_event.type = 'reply'
     let a:reply_event.sender = self.id
+    let a:reply_event.wait_for_id = self.id
     let a:reply_event.selector = {'id': a:event.reply_to}
     if has_key(a:event, 'request_id')
       let a:reply_event.request_id = a:event.request_id
@@ -51,6 +52,11 @@ fun! cells#viml#Cell(cell) abort
   endf
   fun! cell.async_reply_error(event, r) abort
     call g:cells.emit(self.__reply_event(a:event, {'error': a:r} ))
+  endf
+
+  fun! cell.add_trait(t)
+    call add(self.traits, a:t)
+    call call(a:t, [self])
   endf
 
   if has_key(a:cell, 'traits')
@@ -146,6 +152,11 @@ fun! cells#viml#CellCollection()
   fun! c.l_cell_list(event)
     call self.async_reply(map(copy(cells#viml#CellsBySelector(a:event.selector)), 'v:val.id'))
   endf
+  fun! c.l_cell_new_by_name(event)
+    if get(a:event, 'network', 'viml') != 'viml' | return | endif
+    let cell = call(a:event.name, a:event.args)
+    call self.reply_now(a:event, {'id': cell.id})
+  endf
   return c
 endf
 
@@ -155,10 +166,10 @@ fun! cells#viml#EditorCoreInterface() abort
 
   augroup CELLS_VIM8_CORE_EVENTS
   au!
-  exec 'au BufNew    * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufnew",    "bufnr": bufnr("%"), "filename": bufname("%")})'
-  exec 'au BufRead   * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufread",   "bufnr": bufnr("%"), "filename": bufname("%")})'
-  exec 'au BufEnter  * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufenter",  "bufnr": bufnr("%"), "filename": bufname("%")})'
-  exec 'au BufUnload * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufunload", "bufnr": bufnr("%"), "filename": bufname("%")})'
+  exec 'au BufNew    * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufnew",    "bufid": bufnr("%"), "filename": bufname("%")})'
+  exec 'au BufRead   * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufread",   "bufid": bufnr("%"), "filename": bufname("%")})'
+  exec 'au BufEnter  * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufenter",  "bufid": bufnr("%"), "filename": bufname("%")})'
+  exec 'au BufUnload * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufunload", "bufid": bufnr("%"), "filename": bufname("%")})'
   augroup end
 
   fun! c.l_editor_buffers(event)
@@ -188,7 +199,7 @@ fun! cells#viml#EditorCoreInterface() abort
 
   fun! c.__emit_buffer_event(event_data)
     let a:event_data.selector = {'ids': filter(keys(self.subscriptions), 'has_key(self.subscriptions[v:val], a:event_data.type)') }
-    call g:cells.emit({'type': a:event_data.type})
+    call g:cells.emit(a:event_data)
   endf
 
   let c.subscriptions = {}
@@ -202,7 +213,7 @@ fun! cells#viml#EditorCoreInterface() abort
   endf
 
   fun! c.l_cell_list(event)
-    call self.async_reply(map(copy(cells#viml#CellsBySelector(a:event.selector)), 'v:val.id'))
+    call self.async_reply(map(copy(cells#viml#CellsBySelector(get(a:event, 'selector', 'all'))), 'v:val.id'))
   endf
 
 endf
@@ -249,4 +260,23 @@ fun! cells#viml#vim8_VimEventToPy(py_cmd) abort
       endfor
     endif
   endf
+endf
+
+fun! cells#viml#CellEchoReply() abort
+  let cell = cells#viml#Cell({})
+  let s:c.cell_echo_reply = cell
+  let cell.py_cmd = a:py_cmd
+  fun! cell.l_reply(event)
+    echo "got reply ".a:event
+  endf
+  return cell
+endf
+
+fun! cells#viml#logging#Trait(cell) abort
+  fun a:cell.l_log(event)
+    for l in event.loglines
+      exec 'echoe '.string(l)
+    endfor
+  endf
+  return a:cell
 endf

@@ -1,6 +1,6 @@
 " If there are multiple cells active ask user which one to use ..
 
-fun! cells#vim8#emit_to_one#Trait(cell)
+fun! cells#viml#emit_to_one#Trait(cell)
 
   call cells#traits#Ask(a:cell)
 

@@ -35,18 +35,51 @@ endif
 " call cells#viml#vim8_mappings#Cell({})
 
 " you can create multiple cells as you like listening to events
-call cells#viml#Cell({'traits': ['cells#vim8#logging#Trait']})
-call cells#viml#Cell({'traits': ['cells#vim8#ftdetect#Trait', 'cells#vim8#mappings#Trait', 'cells#vim8#signs#Trait', 'cells#vim8#quickfix#Trait']})
-let cell_completion = cells#viml#Cell({'traits': ['cells#vim8#completions#Trait']})
+call cells#viml#Cell({'traits': ['cells#viml#logging#Trait']})
+call cells#viml#Cell({'traits': ['cells#viml#ftdetect#Trait', 'cells#viml#mappings#Trait', 'cells#viml#signs#Trait', 'cells#viml#quickfix#Trait']})
+let cell_completion = cells#viml#Cell({'traits': ['cells#viml#completions#Trait']})
 let cell_completion.limit = 10
 
 " , 'cells#vim8#choice#Trait', 'cells#vim8#emit_to_one#Trait', 
 
+fun! CompleteMonths(findstart, base)
+  if a:findstart
+    " locate the start of the word
+    let line = getline('.')
+    let start = col('.') - 1
+    while start > 0 && line[start - 1] =~ '\a'
+      let start -= 1
+    endwhile
+    return start
+  else
+    " find months matching with "a:base"
+    let res = []
+    for m in split("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec")
+      if m =~ '^' . a:base
+        call add(res, {'word': m})
+      endif
+    endfor
+    return res
+  endif
+endfun
+
 fun! SetupVimTestCells()
   call append('$', ['','','',''])
 
-  let traits = ['cells#examples#TraitTestMappings', 'cells#examples#TraitTestSigns', 'cells#examples#TraitTestQuickfix', 'cells#examples#TraitTestCompletion']
-  call cells#viml#Cell({'traits': traits})
+  let traits = [
+        \ 'cells#examples#TraitTestMappings',
+        \ 'cells#examples#TraitTestSigns',
+        \ 'cells#examples#TraitTestQuickfix',
+        \ 'cells#examples#TraitTestCompletionThisBuffer',
+        \ 'cells#examples#TraitTestCompletionAllBuffers',
+        \ 'cells#examples#TraitCompletionLastInsertedTexts',
+        \ 'cells#examples#TraitCompletionLocalVars',
+        \ ]
+  for t in traits
+    call cells#viml#Cell({'traits': [t]})
+  endfor
+
+  call cells#viml#Cell({'traits': ['cells#examples#TraitCompletionFromCompletionFunction'], 'omnifuns': ['CompleteMonths'] })
 
   sp | enew
   call append('$', [
@@ -59,28 +92,42 @@ endf
 
 let s:this_dir = expand('<sfile>:p:h')
 
-fun! SetupPyTestCells()
+" fun! SetupPy2TestCells()
 
+"   " provide list of filenames for CompletionBasedOnFiles
+"   let c = cells#viml#Cell({})
+"   fun! c.l_project_files(event)
+"     call self.reply_now(a:event, cells#util#Flatten1(map([s:this_dir.'/**/*.vim', s:this_dir.'/**/*.py', s:this_dir.'/README.md'], 'split(glob(v:val), "\n")')))
+"   endf
+
+" if has('python')
+" py << END
+" import cells.examples
+" # cells.examples.Completion() # works (except camel case like matching
+" cells.examples.Mappings() # TODO
+" cells.examples.Signs()    # TODO
+" cells.examples.Quickfix() # TODO
+" cells.examples.CompletionBasedOnFiles() # TODO
+" END
+" endif
+" endf
+
+
+fun! SetupPy3TestCellsExternalProcess()
   " provide list of filenames for CompletionBasedOnFiles
   let c = cells#viml#Cell({})
   fun! c.l_project_files(event)
     call self.reply_now(a:event, cells#util#Flatten1(map([s:this_dir.'/**/*.vim', s:this_dir.'/**/*.py', s:this_dir.'/README.md'], 'split(glob(v:val), "\n")')))
   endf
 
-if has('python')
-py << END
-import cells.examples
-# cells.examples.Completion() # works (except camel case like matching
-cells.examples.Mappings() # TODO
-cells.examples.Signs()    # TODO
-cells.examples.Quickfix() # TODO
-cells.examples.CompletionBasedOnFiles() # TODO
-END
-endif
+  let py3_cell_collection_cell = cells#viml#Cell({'traits': ['cells#vim8#CellCollectionExternalProcessTrait'], 'cmd': ['python', s:this_dir.'/py3cellcollection.py'] })
+  " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Mappings'})
+  " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Signs'})
+  " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Quickfix'})
+  " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.CompletionBasedOnFiles'})
 endf
 
 " echom 'use the following examples call SetupVimTestCells | call SetupVimTestCells()'
-
 
 if cells#vim_dev#GotoError('first') | cfirst | endif
 nnoremap <esc>. :cnext<cr>

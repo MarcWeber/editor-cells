@@ -3,7 +3,7 @@ if !exists('g:cells') | let g:cells = {} | endif |let s:c = g:cells
 " VimL implementation of completion setting completefunc and allowing to use
 " m-<n> to select <n>th entry fast
 
-fun! cells#vim8#completions#EventData(event)
+fun! cells#viml#completions#EventData(event)
   " expected event keys
   "  event['position'] = getpos('.')
   "  event['position'] = getpos('.')
@@ -16,19 +16,19 @@ fun! cells#vim8#completions#EventData(event)
   return event
 endf
 
-fun! cells#vim8#completions#Compare(a, b)
+fun! cells#viml#completions#Compare(a, b)
   let asm = has_key(a:a, 'strong_match')
   let bsm = has_key(a:b, 'strong_match')
 
   return ((asm == bsm) ? (a:a.certainity - a:b.certainity > 0) : ( asm - bsm)) ? -1 : 1
 endf
 
-fun! cells#vim8#completions#Trait(cell) abort
+fun! cells#viml#completions#Trait(cell) abort
   let a:cell.goto_mappings = get(a:cell, 'goto_mappings', map(range(1,9)+["0"], "v:val"))
   let s:c.completion_cell = a:cell
 
   let a:cell.complete_ends = get(a:cell, 'complete_ends', ['<space>', '<cr>'])
-  set omnifunc=cells#vim8#completions#CompletionFunction
+  set omnifunc=cells#viml#completions#CompletionFunction
 
 
   call cells#traits#Ask(a:cell)
@@ -37,7 +37,7 @@ fun! cells#vim8#completions#Trait(cell) abort
     " ask cells identified by selector for completions and show popup
     let self.position = get(a:event, 'position', getpos('.'))
     let event = {'position': self.position, 'limit': a:event.limit, 'match_types' : a:event.match_types}
-    let event = cells#vim8#completions#EventData(event)
+    let event = cells#viml#completions#EventData(event)
 
     call self.cancel_ask('completions_received', {'type': 'completions', 'event': event})
   endf
@@ -63,7 +63,8 @@ fun! cells#vim8#completions#Trait(cell) abort
       endif
 
       for c in i.completions
-        if ! has_key(completions, c.word) || cells#vim8#completions#Compare(c, completions[c.word]) > 0
+        if !has_key(c, 'certainity') | let c.certainity = 1 | endif
+        if ! has_key(completions, c.word) || cells#viml#completions#Compare(c, completions[c.word]) > 0
           let completions[c.word] = c
         endif
       endfor
@@ -71,7 +72,7 @@ fun! cells#vim8#completions#Trait(cell) abort
 
     " sorty by 1) strong_match 2) certainity
 
-    let completions = sort(values(completions), 'cells#vim8#completions#Compare')
+    let completions = sort(values(completions), 'cells#viml#completions#Compare')
 
     let copmletions = completions[0:self.limit]
 
@@ -147,6 +148,6 @@ fun! cells#vim8#completions#Trait(cell) abort
 
 endf
 
-fun! cells#vim8#completions#CompletionFunction(findstart, base) abort
+fun! cells#viml#completions#CompletionFunction(findstart, base) abort
   return s:c.completion_cell.handle_completion(a:findstart, a:base)
 endf

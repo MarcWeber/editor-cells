@@ -1,6 +1,6 @@
 if !exists('g:cells') | let g:cells = {} | endif | let s:c = g:cells
 
-fun! cells#vim8#ftdetect#Trait(cell) abort
+fun! cells#viml#ftdetect#Trait(cell) abort
 
   call cells#traits#Ask(a:cell)
 

@@ -1,32 +1,23 @@
-editor-cell (Ending part of the editor war / like evolution)
+editor-cell - Ending part of the editor war ?
 =============================================
 There important pieces you start loving you want to use in all editing
-environments.
+environments such as completions, snippets, some mappings, but there is no way
+to write it in a reusable way.
+
+editor-cells' goal is to provide an interface for plugins to work with editors
+which can be implemented by many editors easily.
+
+Then you can write your plugin in whatwever language you like:
+- viml
+- elisp
+- JavaScript
+- PHP
+
 BUT: They are written in Java,C,JS,ELisp (Eclipse, (Neo)Vim, vscode, Emacs, ..)
 Its even worse: VimL is slow, NeoVim introduces its own RPC, ...
 
-So how to reuse your code pieces (=cells) ?
-Redefine your interfaces as events
-Add code for editors to use it.
-
-One cell says:
-  "I have an compilation result output - who wants to show it?"
-Another cell replies
- "My task is to show it, so send details to me"
-
-Same about signs, completions, ..
-
-So you setup your system the way you want !
-If you don't like an implementation replace it.
-
-CAUTION: The code may still change ..
-
-BUT WHAT IS IMPORTANT TO YOU
-==============================
-  * A working system
-  * reusing your code across system
-  * reusing 'muscle memory' because it takes time to rebuild
-
+So how to reuse your code pieces such as the completion you care about or
+snippets you wrote?
 
 Which programming language should be default?
 ===================
@@ -44,31 +35,31 @@ Lua and python could be the same runtime:
 and JS is browser ready, but others are type safe or faster.
 So .. - do what you want - but in a way others can reuse your work
 
+So use whatever you know best
+
 WHAT IS A CELL?
 ===================
 A cell has
   - has an id such as 'viml:20'
-  - At least one purpose such as "I provide signs"
+  - At least one purpose such as "I provide signs / completions / mappings"
   - can talk to other cells by receiving and sending events
 Some porcelain is be provided for making async conversations easier
 
 LIMITS
 ======
-Well, eventually it does not make sence to use cells to define highlighting or
-folding or similar (?) - to be seen. But things like smartest completion ever
-with machine learning what is is used most in context and the ilke.
-
-For instance if you're within a foreach(.. as $x) its highly likely that you're
-going to use $x
+Don't know yet. We'll see. Maybe it doesn't make sense to send 'highlighting'
+information from cells to editors or the like. Let's see where the journey goes.
 
 EVENTS
 ======
 An event is a dictionary which can be serialized (such as JSON) because most
-languages understand it. Values should not contain 0 bytes (VimL restriction ?).
+languages understand it in some way. 
+For now values should not contain 0 bytes (VimL restriction ?) - if its very
+important we have to find a solution.
 
-Special keys:
+Event dictionary keys:
 
-  type: All events have it
+  type: All events have it, e.g. 'completions' asking for completions
 
   reply_to: <cell_id> If cells should sent back a reply emit an event to this.
             Use one of the following reply types:
@@ -91,55 +82,95 @@ Special keys:
 
   rather than sending an event.
 
-EVENTS VIML implementation (autoload/cells.vim (API) and autoload/cells/viml.vim)
-===================
+CELL COLLECTIONS
+================
+Each language has its own set of cells and some cells taking care
+of passing communication between them - its your task to setup communication in
+a way which works depending on how you want to use editor-cells.
 
-let cell = cells#viml#Cell({}) " this will already register the cell globally
+See "EVENTS Python" section below about 3 ways about how 'cell collection' interfacing
+can be implemented
 
-" listen to event_name
-fun! cell.l_<event_name>(event)
-  call self.reply_now(a:event, <result>)
+Get a list of all cells from all cell collections:
+  let cer = cells#viml#CellEchoReply()
+  call g:cells.emit({'reply_to': cer.id, 'type': 'cell_list'})
 
-  " or if you want to reply later:
-  call add(a:wait_for, self.id) " notify that a reply will happen
-  call self.async_reply(a:event, <result>) " send the reply
-  call self.async_error(a:event, <error>) " send an error, because the asking cell is waiting for any reply
-endf
+EVENTS VIML implementation
+==========================
+Most important sample code can be found in autoload/cells/viml.vim
+and some sample cell implementations can be found at autoload/cells/vim8
 
-" 
-fun! cell.ask_and_wait_sample()
-  call self.ask({'event': {'type': '...', )}, 'cb': 'process_result'})
-endf
-fun! cell.process_result(request)
-  echoe string(a:request.results_good)
-endf
-
-" send an event, tell everybody that a cell is new:
-call g:cells.emit({'type': 'announce_new_cell', 'cell': cell})
+The VimL system is setup like this:
+  call cells#viml#CellCollection()
+  " Editor core events implementation
+  call cells#viml#EditorCoreInterface()
+  call cells#ProvideAPI()
 
 
+Currently I don't know about any promise like library for VimL,
+so callbacks must be chained, see first parameter to ask().
 
+Example cell
+
+  let cell = cells#viml#Cell({}) " this will already register the cell globally
+
+  " listen to event_name
+  fun! cell.l_<event_name>(event)
+    call self.reply_now(a:event, <result>)
+
+    " or if you want to reply later:
+    call add(a:wait_for, self.id) " notify that a reply will happen
+    call self.async_reply(a:event, <result>) " send the reply
+    call self.async_error(a:event, <error>) " send an error, because the asking cell is waiting for any reply
+  endf
+
+  " 
+  fun! cell.ask_and_wait_sample()
+    call self.ask({'event': {'type': '...', )}, 'cb': 'process_result'})
+  endf
+  fun! cell.process_result(request)
+    echoe string(a:request.results_good)
+  endf
+
+  " send an event, tell everybody that a cell is new:
+  call g:cells.emit({'type': 'announce_new_cell', 'cell': cell})
+
+EVENTS Python implementation
+=================================================================================
+Python 2.x:
+No async features -> see site-packages/py2attic_cells
+Seems to work fine from :py and :py builtin interpreter
+
+Python 3.x:
+Has asyncio which is nice for abstracting callbacks and waiting for
+event replies, but is harder to setup because Python should keep running
+for instance generating replies while control is back at Vim.
+Stopping the 'asyncio' loop causes slow down, using multiple threads
+requires threadsafe message passing
+
+external implementation will be written soon so that event passing can be done
+by stdin/out easily
 
 SPECIAL EVENTS / CONCEPTS / COMMON FEATURES
 ============================================
 
 " results:
-If an eveisnt has key 'reply_to' it indicates that a cell should reply. You can
+If an event has key 'reply_to' it indicates that a cell should reply. You can
 add a 'request_id' which if present should be included in the reply
 
 " internal use:
 
-" core events which should be implemented by each target
+# cell core events which should be implemented by each cell collection
   { 'type': 'emit', }  emit event to all cells, also see emit_to_one
   { 'type': 'cell_collections', }   => reply {'prefix': ..., 'details': ...}
   { 'type': 'cell_collection_added'}   => reply {'name'}
   { 'type': 'cell_kill', selector: ..} # kills cells matching selector
   { 'type': 'cell_list', 'selector': ... } # reply list of ids of cells matching selector, see cells#viml#CellsBySelector
+  { 'type': 'cell_new_by_name', 'name': "name", "args": [], 'network': 'viml' } # each target can implement it on its own
 
-" events about cells
-  { 'type': 'killed', 'sender': .. } # 
-  { 'type': 'properties_changed', }
-
+# cell events about cell lifetime
+  { 'type': 'killed', 'sender': .. }
+  { 'type': 'instance', 'options': {}, 'name': '<cell name>', } # TODO: when running external cell systems ..
 
 # introspection: todo
 
@@ -296,18 +327,6 @@ which replies to wait for.
 
 See autoload/cells/tests.vim -> ask_all() which serves as sample.
 
-CELL COLLECTIONS
-=========================
-Each language has its own set of cells and some cells taking care
-of passing communication between them.
-
-Care has to be taken that the same event doesn't cause a loop when setting
-up the event forwarding.
-
-The recommended way is to have all collections forward the events to one main
-collection which forwards the events to all collections except the
-origin_network.
-
 CELL FEATURES (to be extendended)
 ====================================================
 Maybe you could even call it 'interface' and knows which requests to respond to
@@ -445,11 +464,42 @@ Events might be serialized - thus try to limit size. Thus if you have
 quickfix/sign/completion lists think about whether limiting to 1000 entries
 does make sense.
 
-IMPLEMENTATIONS / COMPLETIONS
+CONCEPTS > MAPPINGS & SIGNS
+=======================================================
+See above
+
+CONCEPTS > PROJECT
+===================
+See project_files
+List files belonging to project
+
+CONCEPTS > COMPLETIONS
 ==============================
-completion based on current buffer: cells#examples#TraitTestCompletion site-packages/cells/examples.py
+Compeltions are simple:
+
+An event with some data (see 'cell events completion' above) gets emitted, and
+the cell should return a list of completions and starting point in line.
+
+So given a line foo.add[' its fine if one completions completes from the last
+'.', the other offers string completions from ' on.
+
+Sample implementations:
+
+
+  # use Vim's omnifunc
+  call cells#viml#Cell({'traits': ['cells#examples#TraitCompletionFromCompletionFunction'], 'omnifuns': 'pythoncomplete#Complete' })
+
+  # words from buffer
+  call cells#examples#TraitTestCompletion({})
+
+  # words from files of a project
+  site-packages/cells/examples.py
 
 completions based on words found in all files belonging to open buffers / files of project
+
+Ideas:
+If introduce a new event l_completion_has_strong_matches to only ask completion
+providers which have strong matches first?gql
 
 RULES OF THUMB
 ===============
@@ -457,6 +507,30 @@ RULES OF THUMB
 
 TODO
 ======
+
+  * from insert mode goto x nth element and maybe replace it
+    (faster templating from similar lines)
+
+  * continuations within context such as 'foo' then add => within PHP arrays
+
+  * v -> completion popup for local vars because they are very likely to be used.
+    for each language its own pattern such as  '(foo) = ' or do |a,b|
+
+    Same about keyword such as f -> unction b -> reak r -> return - get list
+    from syntax files of Vim?
+
+  * eclim integration cell for completion and goto ?
+
+  * http://sublimecodeintel.github.io/SublimeCodeIntel/ integration - there was
+    a patch for YCM which eventually can be looked up easily
+
+  * language server protocol implementation - pick from neovim python code ?
+
+  * snippet engine integration for simple snipmate like snippet or ultisnips?
+    I feel that a simple snipmate like implementation would be good enough
+
+  * tag based completion sample implementation
+
   * implementation about 'accessing editor features' such as get lines, get
     cursor position to be independent of editor implementation.
 
@@ -509,9 +583,8 @@ TODO
 
 TIPS:
 =====
-  Debbungi VimL See
-  if cells#examples#vim_dev#GotoFirstError() | cfirst | endif
-
+  Debugging VimL See
+  if cells#vim_dev#GotoError('first') | cfirst | endif
 
 TODOS/ LINKS
 ============

@@ -1,7 +1,7 @@
 " vim8 implementation of most features
 if !exists('g:cells') | let g:cells = {} | endif |let s:c = g:cells
 
-fun! cells#vim8#quickfix#Trait(cell) abort
+fun! cells#viml#quickfix#Trait(cell) abort
 
   let a:cell.limit = get(a:cell, 'limit', 1000)
 

@@ -1,5 +1,4 @@
 " some exapmle implementation.
-" cells#examples#TraitTestCompletion(cell) is usable actually
 
 fun! cells#examples#TraitTestMappings(cell) abort
   fun! a:cell.l_mappings(event)
@@ -36,9 +35,142 @@ endf
 
 " {{{
 
-fun! cells#examples#TraitTestCompletion(cell) abort
+
+fun! cells#examples#TraitCompletionLastInsertedTexts(cell) abort " {{{
 
   call cells#traits#Ask(a:cell)
+
+  let a:cell.last_inserted_texts = ['']
+  let a:cell.last_pos = getpos('.')
+
+  call a:cell.add_trait('cells#examples#TraitTestCompletionHelper')
+
+  augroup TraitCompletionLastInsertedTexts
+  au!
+  exec 'au TextChanged,TextChangedI * call g:cells.cells['. string(a:cell.id) .'].__text_changed()'
+  augroup end
+
+  fun! a:cell.__text_changed()
+    " if @. = self.last_inserted_texts[0] | return |endif
+    " debug call insert(self.last_inserted_texts, @.)
+    if self.last_pos[0:1] == getpos('.')[0:1]
+      " same line
+      let self.last_inserted_texts[0] = getline('.')
+    else
+      " new line
+      call insert(self.last_inserted_texts, getline('.'))
+    endif
+    let self.last_inserted_texts = self.last_inserted_texts[0:100]
+    let self.last_pos = getpos('.')
+  endf
+
+  fun! a:cell.l_completions(event)
+
+    let word_before_cursor = matchstr(a:event.event.line_split_at_cursor[0], '\zs\S*$')
+    let words = {}
+    let linenr = 1
+
+    let linenr = a:event.event.position[1]
+    let contexts1 = [ 'last_edited_text' ]
+    let contexts2 = [ 'last_edited_text_line' ]
+
+    let certainity = 3
+    for x in self.last_inserted_texts
+
+      " words from last inserted texts
+      for w in self.__line_to_items(x)
+        let words[w] = {'word': w, 'certainity': certainity, 'contexts': contexts1}
+      endfor
+
+      " lines from last inserted texts
+      for line in split(x, "\n")
+        let line = matchstr(line, '^\s*\zs.*')
+        let words[line] = {'word': line, 'certainity': certainity, 'contexts': contexts2}
+      endfor
+
+      let certainity = certainity * 0.7
+    endfor
+
+    let completions = cells#util#match_by_type(values(words), word_before_cursor, a:event.event.match_types)
+    call self.reply_now(a:event, [{
+          \ 'column': a:event.event.position[2] - len(word_before_cursor),
+          \ 'completions' : completions
+    \ }])
+  endf
+
+  return a:cell
+
+endf " }}}
+
+
+fun! cells#examples#TraitCompletionLocalVars(cell) abort
+  " very fuzzy searching of important vars nearby the cursor which you're very
+  " likely to be using ..
+  " TODO: rewrite using Python ?
+
+  call cells#traits#Ask(a:cell)
+
+  fun! a:cell.l_completions(event)
+
+    let word_before_cursor = matchstr(a:event.event.line_split_at_cursor[0], '\zs\S*$')
+    let words = {}
+    let linenr = 1
+
+    let nearby_cursor_lines = 100
+
+    let linenr = a:event.event.position[1]
+    let min = linenr - 500
+
+    let regexes_by_filename = [
+          \ ['\%(\.js\)$'       , 'var\s\(\S\+\)\s'],
+          \ ['\%(\.js\|\.php\)$', 'function \S(\(\s\))', 'post_sep_by_commas'],
+          \ ['\%(\.vim\)$'      , 'let\s\(\S\+\)\s']
+          \ ]
+
+    let ext = expand('%:t')
+    let regexes_by_filename = filter(copy(regexes_by_filename), 'v:key =~ v:val[0]')
+
+    while (linenr > 1)
+      let line = getline(linenr)
+      if line =~ '' || linenr < min | break | endif
+
+      for l in regexes_by_filename
+        let match = matchstr(l[1], line)
+        let post = get(l, 2)
+        if post == 'post_sep_by_commas'
+          for x in split(match, ',\s*')
+            let words[match] = {'word': x, 'certainity': 3, 'contexts': ['local_var_like']}
+          endfor
+        else
+          let words[match] = {'word': match, 'certainity': 3, 'contexts': ['local_var_like']}
+        endif
+      endfor
+      let linenr -= 1
+    endwhile
+
+    let completions = cells#util#match_by_type(values(words), word_before_cursor, a:event.event.match_types)
+    call self.reply_now(a:event, [{
+          \ 'column': a:event.event.position[2] - len(word_before_cursor),
+          \ 'completions' : completions
+    \ }])
+  endf
+
+  return a:cell
+
+endf
+
+fun! cells#examples#TraitTestCompletionHelper(cell) abort
+  fun! a:cell.__line_to_items(line)
+    return  split(a:line,'[/#$|,''"`; \&()[\t\]{}.,+*:]\+')
+  endfun
+endf
+
+fun! cells#examples#TraitTestCompletionThisBuffer(cell) abort
+  " provides completions based on all buffers weightening recent buffers more
+
+  call cells#traits#Ask(a:cell)
+
+  call a:cell.add_trait('cells#examples#TraitTestCompletionHelper')
 
   fun! a:cell.l_completions(event)
     " sample implemenattion illustrating how word completion within a buffer
@@ -52,7 +184,7 @@ fun! cells#examples#TraitTestCompletion(cell) abort
 
     let nearby_cursor_lines = 100
 
-    for w in split(join(getline(1, line('.'))," "),'[/#$|,''"`; \&()[\t\]{}.,+*:]\+')
+    for w in self.__line_to_items(join(getline(1, line('.'))," "))
       if (w == word_before_cursor) | continue | endif
       let line_diff = linenr - a:event.event.position[1]
       if abs(line_diff) > 100
@@ -79,4 +211,72 @@ fun! cells#examples#TraitTestCompletion(cell) abort
   return a:cell
 
 endf
+
+fun! cells#examples#TraitTestCompletionAllBuffers(cell) abort
+
+  call cells#traits#Ask(a:cell)
+
+  call a:cell.add_trait('cells#examples#TraitTestCompletionHelper')
+
+  let a:cell.buf_ids_entered_recently = []
+
+  fun! a:cell.l_buf_enter(event)
+    let self.buf_ids_entered_recently = [a:event.bufid]+filter(self.buf_ids_entered_recently, 'v:val != a:event.bufid')
+  endf
+
+  fun! a:cell.l_completions(event)
+
+    let word_before_cursor = matchstr(a:event.event.line_split_at_cursor[0], '\zs\S*$')
+
+    let words = {}
+    let linenr = 1
+
+    for bufnr in range(1, bufnr('$'))
+      let recently_visited_care = 20
+      let add  = (recently_visited_care - index(self.buf_ids_entered_recently[0:recently_visited_care], bufnr)) / recently_visited_care
+      let contexts = [ 'rec_buf'.add ]
+      for w in self.__line_to_items(join(getbufline(bufnr, 1, '$')," "))
+        if (w == word_before_cursor) | continue | endif
+        let words[w] = {'word': w, 'certainity': 0.5, 'contexts': contexts}
+        let linenr += 1
+      endfor
+    endfor
+
+    let completions = cells#util#match_by_type(values(words), word_before_cursor, a:event.event.match_types)
+    call self.reply_now(a:event, [{
+          \ 'column': a:event.event.position[2] - len(word_before_cursor),
+          \ 'completions' : completions
+    \ }])
+  endf
+
+  return a:cell
+
+endf
+
 " }}}
+
+fun! cells#examples#CompletionsFromCompletionFunction(event, f)
+  let findstart = 1
+  let r1 = call(a:f, [1, ''])
+  if r1 < 0 | continue | endif " no completion or cancel silently
+  let base = a:event.event.line_split_at_cursor[0][r1:]
+  let r2 = call(a:f, [0, base] )
+  return { 'column': r1 +1, 'completions' : r2 }
+endf
+
+fun! cells#examples#TraitCompletionFromCompletionFunction(cell) abort
+  " Usage:
+  " call cells#viml#Cell({'traits': ['cells#examples#TraitCompletionFromCompletionFunction'], 'omnifuns': 'pythoncomplete#Complete' })
+
+  fun! a:cell.l_completions(event)
+    let completions = []
+    for f in self.omnifuns
+      call add(completions, cells#examples#CompletionsFromCompletionFunction(a:event, f))
+    endfor
+    " let completions = cells#util#match_by_type(values(words), word_before_cursor, a:event.event.match_types)
+    call self.reply_now(a:event, completions)
+  endf
+
+  return a:cell
+
+endf

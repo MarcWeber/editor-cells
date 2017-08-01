@@ -1,7 +1,7 @@
 if !exists('g:cells') | let g:cells = {} | endif |let s:c = g:cells
 let s:c['next_sign_id'] = get(s:c, 'next_id', 54674)
 
-fun! cells#vim8#signs#Trait(cell) abort
+fun! cells#viml#signs#Trait(cell) abort
 
   call cells#traits#Ask(a:cell)
 
@@ -11,7 +11,7 @@ fun! cells#vim8#signs#Trait(cell) abort
     for bufnr in range(1, bufnr('$'))
       " reset all signs - brute force - could be optimized
       if !bufexists(bufnr) || !bufwinnr(bufnr) | continue | endif
-      call add(ask, cells#vim8#signs#BufData(bufnr))
+      call add(ask, cells#viml#signs#BufData(bufnr))
     endfor
 
     " if asking for all and refreshing all a good idea? signs move with
@@ -24,15 +24,15 @@ fun! cells#vim8#signs#Trait(cell) abort
   endf
 
   fun! a:cell.update_signs(request)
-    call cells#vim8#signs#UpdateSigns(a:request.event, a:request.results_good)
+    call cells#viml#signs#UpdateSigns(a:request.event, a:request.results_good)
   endf
 
   fun! a:cell.l_bufnew(event)
-    call self.update_buffers([cells#vim8#signs#BufData(a:event.bufnr)])
+    call self.update_buffers([cells#viml#signs#BufData(a:event.bufnr)])
   endf
 endf
 
-fun! cells#vim8#signs#SignsUpdateBuffer(signs) abort
+fun! cells#viml#signs#SignsUpdateBuffer(signs) abort
   " signs: {'category': , 'name': .. 'signs': [..] }
 
   let placed_signs = cells#util#ByKeysDefault(getbufvar(a:signs.bufnr, ""), ['cells_placed_signs', a:signs.category, a:signs.name], {})
@@ -60,7 +60,7 @@ fun! cells#vim8#signs#SignsUpdateBuffer(signs) abort
   endfor
 endf
 
-fun! cells#vim8#signs#UpdateSigns(event, results) abort
+fun! cells#viml#signs#UpdateSigns(event, results) abort
   let results = cells#util#Flatten1(a:results)
   for data in a:event.for_buffers
     let bufnr = data.bufnr
@@ -76,9 +76,9 @@ fun! cells#vim8#signs#UpdateSigns(event, results) abort
         call  filter(results_by_bufnr, '!(v:val.category = '.string(category).' & v:val.name = '.string(name).')')
         if len(results_by_category_name) > 1
           let signs = cells#util#Flatten1(map(copy(results_by_category_name), 'v:val.signs'))
-          call cells#vim8#signs#SignsUpdateBuffer({'bufnr': bufnr, 'name': name, 'category': category, 'signs': signs})
+          call cells#viml#signs#SignsUpdateBuffer({'bufnr': bufnr, 'name': name, 'category': category, 'signs': signs})
         else
-          call cells#vim8#signs#SignsUpdateBuffer({'bufnr': bufnr, 'name': name, 'category': category, 'signs': []})
+          call cells#viml#signs#SignsUpdateBuffer({'bufnr': bufnr, 'name': name, 'category': category, 'signs': []})
         endif
       endfor
     endfor
@@ -91,12 +91,12 @@ fun! cells#vim8#signs#UpdateSigns(event, results) abort
       silent! exec 'sign define '.name.' '.results_by_category_name[0].definition
 
       let signs = cells#util#Flatten1(map(copy(results_by_category_name), 'v:val.signs'))
-      call cells#vim8#signs#SignsUpdateBuffer({'bufnr': bufnr, 'name': name, 'category': category, 'signs': signs})
+      call cells#viml#signs#SignsUpdateBuffer({'bufnr': bufnr, 'name': name, 'category': category, 'signs': signs})
     endfor
 
   endfor
 endf
 
-fun! cells#vim8#signs#BufData(bufnr) abort
+fun! cells#viml#signs#BufData(bufnr) abort
   return {'bufnr': a:bufnr, 'fullpath': expand('%'.a:bufnr.':p'), 'name': bufname(a:bufnr)}
 endf

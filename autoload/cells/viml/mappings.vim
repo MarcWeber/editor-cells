@@ -1,6 +1,6 @@
 if !exists('g:cells') | let g:cells = {} | endif |let s:c = g:cells
 
-fun! cells#vim8#mappings#Trait(cell) abort
+fun! cells#viml#mappings#Trait(cell) abort
 
   let a:cell.mappings_by_sender = get(a:cell, 'mappings_by_sender', {})
   let a:cell.active_mappings_by_scope = get(a:cell, 'active_mappings_by_scope', {})
