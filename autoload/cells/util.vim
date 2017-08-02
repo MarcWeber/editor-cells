@@ -50,16 +50,16 @@ fun! cells#util#match_by_type(list, word, match_types) abort
   if index(a:match_types, 'prefix_ignore_case') >= 0
     call add(regexes, ['^\c'.a:word, 1])
   endif
-  if index(a:match_types, 'ycm') >= 0
+  if index(a:match_types, 'ycm_like') >= 0
     " order of chars .., match case, then without match
     call add(regexes, ['^'.join(split(a:word, '\zs'), '.*'), 1])
     call add(regexes, ['^\c'.join(split(a:word, '\zs'), '.*'), 0.9])
   endif
   if len(a:word) <= 5 && index(a:match_types, 'camel_case_like') >= 0
-    call add(regexes, [cells#util#CamelCaseLikeMatching(a:word), 1])
+    call add(regexes, ['^'.cells#util#CamelCaseLikeMatching(a:word), 1])
   endif
   if (len(regexes) == 0)
-    echom 'unkown match_type '.t
+    echom 'no known match type found in '.string(a:match_types)
     " resort to prefix matching
     call add(regexes, ['^'.a:word, 1])
   endif

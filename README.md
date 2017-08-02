@@ -19,6 +19,45 @@ Its even worse: VimL is slow, NeoVim introduces its own RPC, ...
 So how to reuse your code pieces such as the completion you care about or
 snippets you wrote?
 
+Example - composing and setting up completion system for Vim
+=============================================================
+
+  " ask multiple completion strategies to provide their completions:
+  let traits = {
+        \ 'cells#examples#TraitTestCompletionThisBuffer': {},
+        \ 'cells#examples#TraitTestCompletionAllBuffers': {},
+        \ 'cells#examples#TraitCompletionLastInsertedTexts': {},
+        \ 'cells#examples#TraitCompletionLocalVars': {},
+        \ }
+
+  " A trait just adds some methods to a cell - this way you could reload or
+  " update the implementation on buf write later
+  " Sometimes you can add multiple traits to the same cell, sometimes the
+  " methods conflict
+
+  " For each completion create a cell taking care
+  for [t,v] in items(traits)
+    let traits[t] = cells#viml#Cell({'traits': [t]})
+  endfor
+
+  " now create a cell which can ask the implementations and shows the popup
+  let cell_completion = cells#viml#Cell({'traits': ['cells#viml#completions#Trait']})
+  let cell_completion.limit = 10
+
+  " Now create a cell which takes care about automatically showing the
+  " completion depending on cursor position/ language
+  " only using LocalVars completion because its fast and very likely to cause matches
+  let by_filetype = []
+  call add(by_filetype, {
+    \ 'filetype_pattern' : '.*',
+    \ 'when_regex_matches_current_line': '[a-z]|',
+    \ 'completing_cells': [traits['cells#examples#TraitCompletionLocalVars'].id]
+    \ })
+  call cells#viml#Cell({'traits': ['cells#viml#completions#TraitAutoTrigger'], 'by_filetype':  by_filetype})
+
+  Now whenever your cursor doneted by | in the regex is after the characters
+  [a-z] LocalVar completion should be triggered
+
 Which programming language should be default?
 ===================
   * Common denominator is JS/Typescript

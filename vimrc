@@ -81,6 +81,15 @@ fun! SetupVimTestCells()
 
   call cells#viml#Cell({'traits': ['cells#examples#TraitCompletionFromCompletionFunction'], 'omnifuns': ['CompleteMonths'] })
 
+
+  let by_filetype = []
+  call add(by_filetype, {
+    \ 'filetype_pattern' : '.*',
+    \ 'when_regex_matches_current_line': '[a-z]|',
+    \ 'completing_cells': ['all']
+    \ })
+  call cells#viml#Cell({'traits': ['cells#viml#completions#TraitAutoTrigger'], 'by_filetype':  by_filetype})
+
   sp | enew
   call append('$', [
         \ 'there should be one sign at buffer 1',
@@ -89,6 +98,32 @@ fun! SetupVimTestCells()
   noremap <F10> :qa!<cr>
 endf
 
+
+fun! SetupVimTestCellsCompletionAutoTrigger()
+  call append('$', ['','','',''])
+
+  let traits = [
+        \ 'cells#examples#TraitCompletionLocalVars'
+        \ ]
+  for t in traits
+    call cells#viml#Cell({'traits': [t]})
+  endfor
+
+  let by_filetype = []
+  call add(by_filetype, {
+    \ 'filetype_pattern' : '.*',
+    \ 'when_regex_matches_current_line': '[a-z]|',
+    \ 'completing_cells': ['all']
+    \ })
+  call cells#viml#Cell({'traits': ['cells#viml#completions#TraitAutoTrigger'], 'by_filetype':  by_filetype})
+
+  e /tmp/x.vim | enew
+  call append('$', [
+        \ 'let foo = 7',
+        \ '  ',
+        \ ])
+  noremap <F10> :qa!<cr>
+endf
 
 let s:this_dir = expand('<sfile>:p:h')
 

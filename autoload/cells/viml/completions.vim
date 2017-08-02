@@ -23,6 +23,56 @@ fun! cells#viml#completions#Compare(a, b)
   return ((asm == bsm) ? (a:a.certainity - a:b.certainity > 0) : ( asm - bsm)) ? -1 : 1
 endf
 
+
+fun! cells#viml#completions#TraitAutoTrigger(cell) abort
+  " automatically triggers completions after specific characters for given
+  " filetypes using completions
+  " Example: use MyFastCompletion cell for completing everything after [a-z] before cursor
+  " let cell = MyFastCompletion
+  " call cells#viml#Cell({'traits': ['cells#viml#completions#TraitAutoTrigger'], 'by_filetype':  {'filetype_pattern' : '.*', 'when_regex_matches_current_line': '[a-z]|',  'completing_cells': [cell.id] }})
+ 
+  let a:cell.by_filetype = get(a:cell, 'by_filetype', [
+        \ {'filetype_pattern' : '.*', 'when_regex_matches_current_line': '\.|',  'completing_cells': ['all'] }
+        \ ])
+
+  let a:cell.limit = get(a:cell, 'limit', 10)
+
+  let a:cell.last_pos = [0,0,0,0]
+
+  fun! a:cell.trigger_completion()
+    if pumvisible() | return | endif " TODO or check refreshing completion ..
+
+    let p = getpos('.')
+    if (p == self.last_pos) | return | endif " never run twice - prevent endless cpu burning
+    let self.last_pos = p
+
+    let line = getline('.')
+    let cursor_line = line[0: p[2]-1].'|'. line[p[2]:]
+
+    let cell_ids = []
+    for d in self.by_filetype
+      if cursor_line =~ d.when_regex_matches_current_line 
+        let cell_ids += d.completing_cells
+      endif
+    endfor
+
+    let completing_cells_selecotr = {'ids' : cell_ids}
+    if len(cell_ids) == 0 | return |endif
+
+    if index( cell_ids, 'all') >= 0
+      let completing_cells_selector = 'all'
+    else
+      let completing_cells_selector = {'ids': cell_ids}
+    end
+    call g:cells.emit({'type': 'complete', 'position': getpos('.'), 'limit': self.limit, 'match_types' : ['prefix', 'ycm_like', 'camel_case_like', 'ignore_case', 'last_upper'], 'completing_cells_selector' : completing_cells_selector})
+  endf
+
+  augroup start
+    exec 'au CursorMovedI * call g:cells.cells['. string(a:cell.id) .'].trigger_completion()'
+  augroup end
+
+endf
+
 fun! cells#viml#completions#Trait(cell) abort
   let a:cell.goto_mappings = get(a:cell, 'goto_mappings', map(range(1,9)+["0"], "v:val"))
   let s:c.completion_cell = a:cell
@@ -39,7 +89,7 @@ fun! cells#viml#completions#Trait(cell) abort
     let event = {'position': self.position, 'limit': a:event.limit, 'match_types' : a:event.match_types}
     let event = cells#viml#completions#EventData(event)
 
-    call self.cancel_ask('completions_received', {'type': 'completions', 'event': event})
+    call self.cancel_ask('completions_received', {'type': 'completions', 'event': event, 'selector': get(a:event, 'completing_cells_selector', 'all')})
   endf
 
   " TODO:
@@ -89,7 +139,12 @@ fun! cells#viml#completions#Trait(cell) abort
       endfor
     endif
 
+    if len(s:c.current_completions) == 0 | return | endif
+
     set cot=menu,menuone,noinsert,noselect
+    " try to be graceful - overwrite omnifunc temporarely
+    let self.old_omnifunc = &omnifunc
+    set omnifunc=cells#viml#completions#CompletionFunction
     call feedkeys("\<c-x>\<c-o>", 't')
   endf
 
@@ -133,6 +188,9 @@ fun! cells#viml#completions#Trait(cell) abort
       endif
     else
       if s:c.have_completions
+        if self.old_omnifunc != 'cells#viml#completions#CompletionFunction'
+          exec 'set omnifunc='. self.old_omnifunc
+        endif
         call self.setup_mappings()
         let r = s:c.current_completions.completions
         call remove(s:c, 'current_completions')

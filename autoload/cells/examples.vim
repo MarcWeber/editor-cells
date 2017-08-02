@@ -115,34 +115,45 @@ fun! cells#examples#TraitCompletionLocalVars(cell) abort
     let word_before_cursor = matchstr(a:event.event.line_split_at_cursor[0], '\zs\S*$')
     let words = {}
     let linenr = 1
+    let lines_max = 500
 
     let nearby_cursor_lines = 100
 
     let linenr = a:event.event.position[1]
-    let min = linenr - 500
+    let min = linenr - lines_max
+    if min < 0 | let min = 1 | endif
 
     let regexes_by_filename = [
-          \ ['\%(\.js\)$'       , 'var\s\(\S\+\)\s'],
-          \ ['\%(\.js\|\.php\)$', 'function \S(\(\s\))', 'post_sep_by_commas'],
-          \ ['\%(\.vim\)$'      , 'let\s\(\S\+\)\s']
-          \ ]
+        \ ['\%(\.js\)$'       , 'var\s\(\S\+\)\s'],
+        \ ['\%(\.js\|\.vim\)$', 'function\%(\s\+\(\S\+\)\)\?(\([^)]*\))', 'post_function'],
+        \ ['\%(\.vim\)$'      , 'let\s\(\S\+\)\s'],
+        \ ['\%(\.vim\)$'      , 'for\s\+\(\S\+\)']
+        \ ]
 
     let ext = expand('%:t')
-    let regexes_by_filename = filter(copy(regexes_by_filename), 'v:key =~ v:val[0]')
+    " let regexes_by_filename = filter(copy(regexes_by_filename), 'ext =~ v:val[0]')
+    let words = {}
 
-    while (linenr > 1)
+    while linenr >= min
       let line = getline(linenr)
-      if line =~ '' || linenr < min | break | endif
+
+      let certainity = 3.0 - (1.0 + a:event.event.position[1] - linenr) / lines_max
+
+      " if line =~ '' || linenr < min | break | endif
 
       for l in regexes_by_filename
-        let match = matchstr(l[1], line)
+        let match = matchlist(line, l[1])
+        if len(match) == 0 | continue | endif
         let post = get(l, 2)
-        if post == 'post_sep_by_commas'
-          for x in split(match, ',\s*')
-            let words[match] = {'word': x, 'certainity': 3, 'contexts': ['local_var_like']}
+        if post == 'post_function'
+          if match[1] != ''
+            let words[match[1]] = {'word': match[1], 'certainity': certainity, 'contexts': ['local_var_like']}
+          endif
+          for x in split(match[2], ',\s*')
+            let words[x] = {'word': x, 'certainity': certainity, 'contexts': ['local_var_like']}
           endfor
         else
-          let words[match] = {'word': match, 'certainity': 3, 'contexts': ['local_var_like']}
+          let words[match[1]] = {'word': match[1], 'certainity': certainity, 'contexts': ['local_var_like']}
         endif
       endfor
       let linenr -= 1
