@@ -252,7 +252,7 @@ add a 'request_id' which if present should be included in the reply
 
   reply => 
   [
-    { 'column': .., 'context': 'default', 'completions': [{'word', 'word_propability', 'description', 'continuation' : '..', 'certainity' => float}] }
+    { 'column': .., 'context': 'default', 'completions': [{'word', 'word_propability', 'description', 'continuation' : '..', 'w' => float}] }
   ]
 
   word: the word to be inserted
@@ -265,13 +265,21 @@ add a 'request_id' which if present should be included in the reply
   description:
   .. see completions keys
 
-  certainity:
+  w(eight):
+    > 10 -> highly likely match
+    >= 1 -> likely match
+    <= 1 -> don't know, show if there is no high likely match left.
 
   strong_match: <reason> if set, should be shown first along with reason
 
   contexts: a list of words associating the word with context which can later
             be used for machine learning such as 'local var' or 'from scope'
 
+  type
+
+  menu: additional text which will be added after word
+
+  kind: like kind of vim, but can have multiple chars, recommeded to keep short
 
   The code showing the completions might use this information for both:
   Calculating probabilities or disregarding other completions or showing them first
@@ -546,6 +554,12 @@ RULES OF THUMB
 
 TODO
 ======
+
+  * Finish python3 backend Much code should no longer depend on an editor unless there is a strong reason
+
+  * Integrate YCM
+
+  * Integrate Eclim
 
   * from insert mode goto x nth element and maybe replace it
     (faster templating from similar lines)

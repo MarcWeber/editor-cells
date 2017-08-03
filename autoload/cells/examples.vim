@@ -74,18 +74,18 @@ fun! cells#examples#TraitCompletionLastInsertedTexts(cell) abort " {{{
     let contexts1 = [ 'last_edited_text' ]
     let contexts2 = [ 'last_edited_text_line' ]
 
-    let certainity = 3
+    let certainity = 1.3
     for x in self.last_inserted_texts
 
       " words from last inserted texts
       for w in self.__line_to_items(x)
-        let words[w] = {'word': w, 'certainity': certainity, 'contexts': contexts1}
+        let words[w] = {'word': w, 'w': certainity, 'contexts': contexts1, 'kind' : 'last inserted word'}
       endfor
 
       " lines from last inserted texts
       for line in split(x, "\n")
         let line = matchstr(line, '^\s*\zs.*')
-        let words[line] = {'word': line, 'certainity': certainity, 'contexts': contexts2}
+        let words[line] = {'word': line, 'w': certainity, 'contexts': contexts2, 'kind': 'last inserted line'}
       endfor
 
       let certainity = certainity * 0.7
@@ -110,6 +110,30 @@ fun! cells#examples#TraitCompletionLocalVars(cell) abort
 
   call cells#traits#Ask(a:cell)
 
+  fun! a:cell.__post_function_vim(words, match, certainity)
+    if a:match[1] != ''
+      let a:words[a:match[1]] = {'word': a:match[1], 'w': a:certainity, 'contexts': ['local_var_like'], 'kind': 'LocalVars'}
+    endif
+    for x in split(a:match[2], ',\s*')
+      let a:words[x] = {'word': x, 'replacement': 'a:'.x, 'w': a:certainity, 'contexts': ['local_var_like'], 'kind': 'LocalVars'}
+    endfor
+  endf
+
+  fun! a:cell.__post_function_fun_args(words, match, certainity)
+      if a:match[1] != ''
+        let a:words[a:match[1]] = {'word': a:match[1], 'w': a:certainity, 'contexts': ['local_var_like'], 'kind': 'LocalVars'}
+      endif
+      for x in split(a:match[2], ',\s*')
+        let a:words[x] = {'word': x, 'w': a:certainity, 'contexts': ['local_var_like'], 'kind': 'LocalVars' }
+      endfor
+  endf
+
+  fun! a:cell.__first_match(words, match, certainity)
+      if a:match[1] != ''
+        let a:words[a:match[1]] = {'word': a:match[1], 'w': a:certainity, 'contexts': ['local_var_like']}
+      endif
+  endf
+
   fun! a:cell.l_completions(event)
 
     let word_before_cursor = matchstr(a:event.event.line_split_at_cursor[0], '\zs\S*$')
@@ -124,42 +148,44 @@ fun! cells#examples#TraitCompletionLocalVars(cell) abort
     if min < 0 | let min = 1 | endif
 
     let regexes_by_filename = [
-        \ ['\%(\.js\)$'       , 'var\s\(\S\+\)\s'],
-        \ ['\%(\.js\|\.vim\)$', 'function\%(\s\+\(\S\+\)\)\?(\([^)]*\))', 'post_function'],
-        \ ['\%(\.vim\)$'      , 'let\s\(\S\+\)\s'],
-        \ ['\%(\.vim\)$'      , 'for\s\+\(\S\+\)']
+        \ ['\%(\.js\)$'       , 'var\s\(\S\+\)\s', self.__first_match],
+        \ ['\%(\.js\|\.vim\)$', 'function\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__post_function_fun_args],
+        \ ['\%(\.js)$', 'fun\S*\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__post_function_vim],
+        \ ['\%(\.vim\)$'      , 'let\s\(\S\+\)\s', self.__first_match],
+        \ ['\%(\.vim\)$'      , 'for\s\+\(\S\+\)', self.__first_match]
         \ ]
 
+
     let ext = expand('%:t')
+
+    let break_on_regex_by_ext = {
+          \'js' : '^function',
+          \'vim' : '^fun'
+          \ }
+    let break_on_regex = get(break_on_regex_by_ext, ext, '')
+
     " let regexes_by_filename = filter(copy(regexes_by_filename), 'ext =~ v:val[0]')
     let words = {}
 
     while linenr >= min
       let line = getline(linenr)
-
-      let certainity = 3.0 - (1.0 + a:event.event.position[1] - linenr) / lines_max
-
-      " if line =~ '' || linenr < min | break | endif
+      let certainity = 14 - (1.0 + a:event.event.position[1] - linenr) / lines_max
+      if (break_on_regex != '' && line =~  break_on_regex) || linenr < min | break | endif
 
       for l in regexes_by_filename
         let match = matchlist(line, l[1])
         if len(match) == 0 | continue | endif
-        let post = get(l, 2)
-        if post == 'post_function'
-          if match[1] != ''
-            let words[match[1]] = {'word': match[1], 'certainity': certainity, 'contexts': ['local_var_like']}
-          endif
-          for x in split(match[2], ',\s*')
-            let words[x] = {'word': x, 'certainity': certainity, 'contexts': ['local_var_like']}
-          endfor
-        else
-          let words[match[1]] = {'word': match[1], 'certainity': certainity, 'contexts': ['local_var_like']}
-        endif
+        " call helper function to turn matches into words
+        call call(l[2], [words, match, certainity], self)
       endfor
       let linenr -= 1
     endwhile
 
     let completions = cells#util#match_by_type(values(words), word_before_cursor, a:event.event.match_types)
+    for c in completions
+      if has_key(c, 'replacement') | let c.word = c.replacement | call remove(c, 'replacement') | endif
+    endfor
+
     call self.reply_now(a:event, [{
           \ 'column': a:event.event.position[2] - len(word_before_cursor),
           \ 'completions' : completions
@@ -208,9 +234,11 @@ fun! cells#examples#TraitTestCompletionThisBuffer(cell) abort
           let certainity = sqrt(certainity)
         endif
       endif
-      let words[w] = {'word': w, 'certainity': certainity}
+      let words[w] = {'word': w, 'w': certainity}
       let linenr += 1
     endfor
+
+
 
     let completions = cells#util#match_by_type(values(words), word_before_cursor, a:event.event.match_types)
     call self.reply_now(a:event, [{
@@ -248,7 +276,7 @@ fun! cells#examples#TraitTestCompletionAllBuffers(cell) abort
       let contexts = [ 'rec_buf'.add ]
       for w in self.__line_to_items(join(getbufline(bufnr, 1, '$')," "))
         if (w == word_before_cursor) | continue | endif
-        let words[w] = {'word': w, 'certainity': 0.5, 'contexts': contexts}
+        let words[w] = {'word': w, 'w': 0.5, 'contexts': contexts}
         let linenr += 1
       endfor
     endfor

@@ -20,7 +20,7 @@ fun! cells#viml#completions#Compare(a, b)
   let asm = has_key(a:a, 'strong_match')
   let bsm = has_key(a:b, 'strong_match')
 
-  return ((asm == bsm) ? (a:a.certainity - a:b.certainity > 0) : ( asm - bsm)) ? -1 : 1
+  return ((asm == bsm) ? (a:a.w - a:b.w > 0) : ( asm - bsm)) ? -1 : 1
 endf
 
 
@@ -113,18 +113,24 @@ fun! cells#viml#completions#Trait(cell) abort
       endif
 
       for c in i.completions
-        if !has_key(c, 'certainity') | let c.certainity = 1 | endif
-        if ! has_key(completions, c.word) || cells#viml#completions#Compare(c, completions[c.word]) > 0
+        if !has_key(c, 'w') | let c.w = 1 | endif
+        if ! has_key(completions, c.word) || cells#viml#completions#Compare(c, completions[c.word]) < 0
           let completions[c.word] = c
         endif
       endfor
     endfor
 
-    " sorty by 1) strong_match 2) certainity
+    " sorty by 1) strong_match 2) weight
 
+    let g:completions = completions
     let completions = sort(values(completions), 'cells#viml#completions#Compare')
 
     let copmletions = completions[0:self.limit]
+
+    for c in completions
+      " post process items
+      " let c.menu = get(c, 'menu', '').' '.get(c, 'kind', '')
+    endfo
 
     let s:c.current_completions = {'completions':  completions, 'column': column, 'pos': self.position}
 
