@@ -555,11 +555,15 @@ RULES OF THUMB
 TODO
 ======
 
-  * Finish python3 backend Much code should no longer depend on an editor unless there is a strong reason
+  * Finish Python3 backend
 
   * Integrate YCM
 
   * Integrate Eclim
+
+  * integrate template engine
+
+  * Talk about benefits and create videos/screenshots
 
   * from insert mode goto x nth element and maybe replace it
     (faster templating from similar lines)

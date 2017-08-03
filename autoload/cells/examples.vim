@@ -112,7 +112,7 @@ fun! cells#examples#TraitCompletionLocalVars(cell) abort
 
   fun! a:cell.__post_function_vim(words, match, certainity)
     if a:match[1] != ''
-      let a:words[a:match[1]] = {'word': a:match[1], 'w': a:certainity, 'contexts': ['local_var_like'], 'kind': 'LocalVars'}
+      let a:words[a:match[1]] = {'word': a:match[1], 'w': a:certainity -0.1, 'contexts': ['local_var_like'], 'kind': 'LocalVars'}
     endif
     for x in split(a:match[2], ',\s*')
       let a:words[x] = {'word': x, 'replacement': 'a:'.x, 'w': a:certainity, 'contexts': ['local_var_like'], 'kind': 'LocalVars'}
@@ -136,7 +136,7 @@ fun! cells#examples#TraitCompletionLocalVars(cell) abort
 
   fun! a:cell.l_completions(event)
 
-    let word_before_cursor = matchstr(a:event.event.line_split_at_cursor[0], '\zs\S*$')
+    let word_before_cursor = matchstr(a:event.event.line_split_at_cursor[0], '\zs\w*$')
     let words = {}
     let linenr = 1
     let lines_max = 500

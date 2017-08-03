@@ -17,13 +17,6 @@ call cells#viml#CellCollection()
 call cells#viml#EditorCoreInterface()
 call cells#ProvideAPI()
 
-" PY <-> PY3 <-> VIM
-for py_cmd in  ['python' ,'python3']
-  if has(py_cmd)
-    call cells#viml#setupPython(py_cmd)
-  endif
-endfor
-
 if 0
   let logger = cells#viml#Cell({})
   fun! logger.l_emit(event)
@@ -121,25 +114,31 @@ endf
 
 let s:this_dir = expand('<sfile>:p:h')
 
-" fun! SetupPy2TestCells()
+fun! SetupPyInsideVimTestCells()
+  " CONSIDER SUING PY FOR ausyncio reasons - but it works
 
-"   " provide list of filenames for CompletionBasedOnFiles
-"   let c = cells#viml#Cell({})
-"   fun! c.l_project_files(event)
-"     call self.reply_now(a:event, cells#util#Flatten1(map([s:this_dir.'/**/*.vim', s:this_dir.'/**/*.py', s:this_dir.'/README.md'], 'split(glob(v:val), "\n")')))
-"   endf
+  for py_cmd in  ['python3']
+    if has(py_cmd)
+      call cells#viml_py_inside_vim#setupPython(py_cmd)
+    endif
+  endfor
 
-" if has('python')
-" py << END
-" import cells.examples
-" # cells.examples.Completion() # works (except camel case like matching
-" cells.examples.Mappings() # TODO
-" cells.examples.Signs()    # TODO
-" cells.examples.Quickfix() # TODO
-" cells.examples.CompletionBasedOnFiles() # TODO
-" END
-" endif
-" endf
+  let c = cells#viml#Cell({})
+  fun! c.l_project_files(event)
+    call self.reply_now(a:event, cells#util#Flatten1(map([s:this_dir.'/**/*.vim', s:this_dir.'/**/*.py', s:this_dir.'/README.md'], 'split(glob(v:val), "\n")')))
+  endf
+
+if has('python3')
+py3 << END
+import cells.examples
+# cells.examples.Completion() # works (except camel case like matching
+cells.examples.Mappings() # TODO
+cells.examples.Signs()    # TODO
+cells.examples.Quickfix() # TODO
+cells.examples.CompletionBasedOnFiles() # TODO
+END
+endif
+endf
 
 
 fun! SetupPy3TestCellsExternalProcess()

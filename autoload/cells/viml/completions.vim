@@ -99,15 +99,16 @@ fun! cells#viml#completions#Trait(cell) abort
       return
     endif
 
-    let all = cells#util#Flatten1(a:request.results_good)
+    let all = filter(cells#util#Flatten1(a:request.results_good), 'len(v:val.completions) > 0')
     let column = min(map(copy(all), 'v:val.column'))
 
     let completions = {}
 
     for i in all
-      let pref = a:request.event.event.line_split_at_cursor[0][column:i.column-1]
+      let pref = a:request.event.event.line_split_at_cursor[0][column-1:i.column-2]
       if pref != ""
         for c in i.completions
+          let c.abbrev = c.word
           let c.word = pref. c.word
         endfor
       endif
