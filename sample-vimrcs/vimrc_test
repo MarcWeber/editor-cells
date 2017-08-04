@@ -1,0 +1,23 @@
+set nocompatible
+filetype indent plugin on | syn on
+set hidden
+" sample vimrc
+exec 'set rtp+='.fnameescape(expand('<sfile>:p:p:h'))
+
+call cells#viml#CellCollection()
+call cells#viml#EditorCoreInterface()
+
+call cells#ProvideAPI()
+
+" PY <-> PY3 <-> VIM
+for py_cmd in  ['python' ,'python3']
+  if has(py_cmd)
+    call cells#viml#setupPython(py_cmd)
+  endif
+endfor
+
+call cells#tests#RunAllTests()
+
+if cells#vim_dev#GotoError('first') | cfirst | endif
+
+nnoremap <esc>. :cnext<cr>
