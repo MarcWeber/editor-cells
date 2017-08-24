@@ -8,7 +8,7 @@ fun! cells#viml_py_inside_vim#setupPython(py_cmd) abort
     let py = [
           \ 'import sys',
           \ 'import vim',
-          \ 'sys.path.append(vim.eval("s:path")+"/py2/site-packages/")',
+          \ 'sys.path.append(vim.eval("s:path")+"/pyinline//site-packages/")',
           \ 'import cells',
           \ 'import cells.util',
           \ 'import cells.py',

@@ -94,6 +94,9 @@ fun! cells#traits#Ask(cell) abort
       if has_key(a:event, 'result') || has_key(a:event, 'error')
         call add(request.results, a:event)
       endif
+      if has_key(a:event, 'results')
+        let request.results = request.results + a:event.results
+      endif
     else
       let request.replies_to_be_waited_for[a:event.wait_for_id] = a:event
     endif

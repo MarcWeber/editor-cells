@@ -153,11 +153,11 @@ fun! SetupPy3TestCellsAsPyThreadWithinVim()
   " provide list of filenames for CompletionBasedOnFiles
   call SetupProjectFilesCell()
 
-  let py3_cell_collection_cell = cells#viml#Cell({'traits': ['cells#vim8#CellCollectionExternalProcessTrait'], 'cmd': ['python', s:this_dir.'/py3cellcollection.py'] })
-  " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Mappings'})
-  " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Signs'})
-  " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Quickfix'})
-  " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.CompletionBasedOnFiles'})
+  let py3_cell_collection_cell = cells#viml#Cell({'traits': ['cells#vim8#CellCollectionExternalProcessTrait'], 'cmd': ['python', s:this_dir.'/../bin/py3cellcollection.py'], 'pipe_dump_prefix' : 'py3'  })
+  call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Mappings'})
+  call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Signs'})
+  call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Quickfix'})
+  call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.CompletionBasedOnFiles'})
 endf
 
 
@@ -166,11 +166,11 @@ fun! SetupPy3TestCellsExternalProcess()
   " provide list of filenames for CompletionBasedOnFiles
   call SetupProjectFilesCell()
 
-  let py3_cell_collection_cell = cells#viml#Cell({'traits': ['cells#vim8#CellCollectionExternalProcessTrait'], 'cmd': ['python', s:this_dir.'/py3cellcollection.py'] })
+  let py3_cell_collection_cell = cells#viml#Cell({'traits': ['cells#vim8#CellCollectionExternalProcessTrait'], 'cmd': ['python', s:this_dir.'/../bin/py3cellcollection.py'], 'pipe_dump_prefix' : 'py3' })
   " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Mappings'})
   " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Signs'})
   " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Quickfix'})
-  " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.CompletionBasedOnFiles'})
+  call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.CompletionBasedOnFiles'})
 endf
 
 " echom 'use the following examples call SetupVimTestCells | call SetupVimTestCells()'

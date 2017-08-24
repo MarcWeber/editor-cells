@@ -31,6 +31,7 @@ fun! cells#viml#Cell(cell) abort
   endf
 
   fun! cell.__reply_event(event, reply_event)
+    " TODO wait_for_id should be a parameter eventually - think about it
     let a:reply_event.type = 'reply'
     let a:reply_event.sender = self.id
     let a:reply_event.wait_for_id = self.id
@@ -93,6 +94,7 @@ fun! cells#viml#emit_selector(event) abort
 endf
 
 fun! cells#viml#emit(event, viml_cells) abort
+  echom string(a:event)
   let listener = 'l_'.a:event.type
   for cell in a:viml_cells
     if has_key(cell, listener)
@@ -191,10 +193,8 @@ fun! cells#viml#EditorCoreInterface() abort
     call self.reply_now(a:event, {'buffers': buffers, 'current': b})
   endf
 
-  fun! c.l_editor_buflines(event)
-    if has_key(a:event, 'from_line') || has_key(a:event, 'to_line')
-      call self.reply_now(a:event, getbufline(get(a:event, 'bufid', '%') ,get(a:event, 'from_line', 1), get(a:event, 'to_line', line('.'))))
-    endif
+  fun! c.l_editor_buffer_lines(event)
+    call self.reply_now(a:event, getbufline(get(a:event, 'bufid', '%') ,get(a:event, 'from_line', 1), get(a:event, 'to_line', line('.'))))
   endfun
 
   fun! c.__emit_buffer_event(event_data)

@@ -1,27 +1,28 @@
 editor-cell - Ending part of the editor war ?
 =============================================
-There important pieces you start loving you want to use in all editing
-environments such as completions, snippets, some mappings, but there is no way
-to write it in a reusable way.
+Editors supported: 
+  Vim (done),
+  Emacs (coming),
+  ...
 
-editor-cells' goal is to provide an interface for plugins to work with editors
-which can be implemented by many editors easily.
+Features supported:
+  * completions (done), todo: eclim, ycmd, server-protocol
+  * goto to definition of thing at cursor (coming)
+  * templates (coming)
+  * signs
+  * error lists
 
-Then you can write your plugin in whatwever language you like:
-- viml
-- elisp
-- JavaScript
-- PHP
+Combine reusable cells the way you want
 
-BUT: They are written in Java,C,JS,ELisp (Eclipse, (Neo)Vim, vscode, Emacs, ..)
-Its even worse: VimL is slow, NeoVim introduces its own RPC, ...
+SHOTS / Videos
+==============
+ TODO
 
-So how to reuse your code pieces such as the completion you care about or
-snippets you wrote?
 
-Example - composing and setting up completion system for Vim
-=============================================================
+VIM exmaple
+===========
 
+```viml
   " ask multiple completion strategies to provide their completions:
   let traits = {
         \ 'cells#examples#TraitTestCompletionThisBuffer': {},
@@ -30,17 +31,25 @@ Example - composing and setting up completion system for Vim
         \ 'cells#examples#TraitCompletionLocalVars': {},
         \ }
 
-  " A trait just adds some methods to a cell - this way you could reload or
-  " update the implementation on buf write later
-  " Sometimes you can add multiple traits to the same cell, sometimes the
-  " methods conflict
+  " A trait just adds some methods to a dictionary - this way you could reload
+  " or update the implementation on buf write later by rerunning the trait
+  " function on the cell.
 
-  " For each completion create a cell taking care
+  " What do the completion providers do ?
+  " TraitTestCompletionThisBuffer => complete words of current buffer
+  " TraitTestCompletionAllBuffers => complete words in all opened buffers
+  " TraitCompletionLastInsertedTexts': {} => complete words from last texts you typed in this session
+  " TraitCompletionLocalVars': {},        =>  When using var foo = 7; ist very likely that you'll be using foo, so rate those hits higher
+
+  " For each completion create a cell having the trait
   for [t,v] in items(traits)
     let traits[t] = cells#viml#Cell({'traits': [t]})
   endfor
 
-  " now create a cell which can ask the implementations and shows the popup
+  " Note for viml devs: A special trait cells#traits#Ask(cell) adds porcelain
+  " for ask - replies communication
+
+  " Now create a cell which can ask the implementations and shows the popup
   let cell_completion = cells#viml#Cell({'traits': ['cells#viml#completions#Trait']})
   let cell_completion.limit = 10
 
@@ -53,28 +62,27 @@ Example - composing and setting up completion system for Vim
     \ 'when_regex_matches_current_line': '[a-z]|',
     \ 'completing_cells': [traits['cells#examples#TraitCompletionLocalVars'].id]
     \ })
+
+  " The | means cursor location. Thus if you've typed one lower case char
+  " completion will kick in
+
+  " Retry with all completion providers once 3 chars have been typed
+  call add(by_filetype, {
+    \ 'filetype_pattern' : '.*',
+    \ 'when_regex_matches_current_line': '[a-z][a-z][a-z]|',
+    \ 'completing_cells': ['all']
+    \ })
+
+  " As alternative map <s-space> to kick of completion provide by cell ids id1, id2
+  nnoremap <s-space> :call g:cells.emit({'type': 'complete', 'position': getpos('.'), 'limit': self.limit, 
+    \ 'match_types' : ['prefix', 'ycm_like', 'camel_case_like', 'ignore_case', 'last_upper'],
+    \ 'completing_cells_selector' : {'cell_ids': [id1, id2]}
+    })
   call cells#viml#Cell({'traits': ['cells#viml#completions#TraitAutoTrigger'], 'by_filetype':  by_filetype})
 
-  Now whenever your cursor doneted by | in the regex is after the characters
-  [a-z] LocalVar completion should be triggered
+  " See sample-vimrcs/* about how to integrate python cells
 
-Which programming language should be default?
-===================
-  * Common denominator is JS/Typescript
-  * NeoVim is heading towards lua
-  * Vim has VimL (sucks for speed reasons) -> historically Python has been used most
-  * Emacs -> Elisp
-  * external tools (lanugage servers) are written in many languages
-  * ....
-=> so a choice cannot be made easily
-
-Lua and python could be the same runtime:
-  https://labix.org/lunatic-python
-
-and JS is browser ready, but others are type safe or faster.
-So .. - do what you want - but in a way others can reuse your work
-
-So use whatever you know best
+```
 
 WHAT IS A CELL?
 ===================
@@ -84,13 +92,9 @@ A cell has
   - can talk to other cells by receiving and sending events
 Some porcelain is be provided for making async conversations easier
 
-LIMITS
-======
-Don't know yet. We'll see. Maybe it doesn't make sense to send 'highlighting'
-information from cells to editors or the like. Let's see where the journey goes.
 
-EVENTS
-======
+How do events look like ?
+=========================
 An event is a dictionary which can be serialized (such as JSON) because most
 languages understand it in some way. 
 For now values should not contain 0 bytes (VimL restriction ?) - if its very
@@ -108,18 +112,15 @@ Event dictionary keys:
   request_id:  Only makes sens if reply_to is used. When replying pass the same
                id so that asking cell knows which question the reply belongs to
 
-  timeout_sec: optional: If you know that you don't want to wait forever set a time limit here.
+  timeout_sec: optional/ unimplemented: If you know that you don't want to wait forever set a time limit here.
 
-  sender: <cell-id>, for instance when sending replies
+  sender: <cell-id>: Giving hints about the origin of an event
 
   wait_for: [] list of cell_ids to be wait for till the result is complete (async replies)
+  wait_for_id: Eeach reply must contain this key to tell the asking cell that this reply was received so that it knows when all replies have arrived
+  resust/error: reply result or reply exception
   results:  [] list you can add results to (immediate replies). The result should have the form {'result/error': ..}
-
-  A listening event can return 
-    "wait_for" : [<my-id>]
-    "results"  : [<my-id>]
-
-  rather than sending an event.
+  wait_for_id__for_requesting_cell: When passing an event to another collection which replies asynchronously, see bin/py3cellcollection.py
 
 CELL COLLECTIONS
 ================
@@ -133,6 +134,9 @@ can be implemented
 Get a list of all cells from all cell collections:
   let cer = cells#viml#CellEchoReply()
   call g:cells.emit({'reply_to': cer.id, 'type': 'cell_list'})
+
+Example external process see py3cellcollection.py, mind the special event
+set-cell-collection-name to set the collection name
 
 EVENTS VIML implementation
 ==========================
@@ -175,12 +179,12 @@ Example cell
   call g:cells.emit({'type': 'announce_new_cell', 'cell': cell})
 
 EVENTS Python implementation
-=================================================================================
-Python 2.x:
-No async features -> see site-packages/py2attic_cells
+============================
+Python 2.x / no asyncio
+No async features -> see pyinline/*
 Seems to work fine from :py and :py builtin interpreter
 
-Python 3.x:
+Python 3.x & asyncio
 Has asyncio which is nice for abstracting callbacks and waiting for
 event replies, but is harder to setup because Python should keep running
 for instance generating replies while control is back at Vim.
@@ -190,12 +194,13 @@ requires threadsafe message passing
 external implementation will be written soon so that event passing can be done
 by stdin/out easily
 
+See sample-vimrcs/ about how to actually populate cell collections in python
+and use them within Vim.
+
 SPECIAL EVENTS / CONCEPTS / COMMON FEATURES
 ============================================
-
-" results:
-If an event has key 'reply_to' it indicates that a cell should reply. You can
-add a 'request_id' which if present should be included in the reply
+Too much specification can hurt. So if you need keys/events add them and
+document the main features. Things will be fixed on the fly.
 
 " internal use:
 
@@ -357,6 +362,8 @@ Example implementation for Vim see cells#viml#EditorCoreInterface()
 { 'type': 'editor_subscribe', 'subscriptions': {'name' : {}, 'name': {}} } # subscribe to features / events
 { 'type': 'editor_buffers', 'keys': ['id', 'filename', 'modify_state'] } # subscribe to features / events
   -> reply { 'buffers': [{'id': .., 'filename': ..}, 'modify_state': }]}
+{ 'type': 'editor_buffer_lines', 'bufid': .., ['from_line': .., 'to_line': .. ]}
+  -> reply { 'buffers': [{'id': .., 'filename': ..}, 'modify_state': }]}
 
 features:
   ['editor_bufopen', 'editor_bufclose', 'editor_buf_written', 'editor_buf_cursor_pos']
@@ -367,12 +374,6 @@ features:
    {"type': 'editor_buf_changed', 'bufid': <bufid>, 'filename'}
    # {"type': 'buf_cursor_pos',     'bufid': <bufid>, 'filename'} TODO
 
-EVENT REPLIES
-==========================
-Its ugly: Multiple processes will be running its required to keep track of
-which replies to wait for.
-
-See autoload/cells/tests.vim -> ask_all() which serves as sample.
 
 CELL FEATURES (to be extendended)
 ====================================================
@@ -548,18 +549,28 @@ Ideas:
 If introduce a new event l_completion_has_strong_matches to only ask completion
 providers which have strong matches first?gql
 
-RULES OF THUMB
-===============
-* In case of doubt assume that restarting Vim is cheap
+RULES OF THUMB I think make sense
+=================================
+They may help you make decisions
+
+  * [Vim] In case of doubt assume that restarting Vim is cheap
 
 TODO
-======
+====
 
-  * Finish Python3 backend
+  * to n words completion if they occur very often nearby
+
+  * Name completion in "Dear / Sehr geehrte .." in emails?
+
+  * Finish Py asyncio backend
+    - within Vim with timer/callback
+    - as external process
 
   * Integrate YCM
 
   * Integrate Eclim
+
+  * completions after @ (host completion) within file / project files
 
   * integrate template engine
 
@@ -587,6 +598,8 @@ TODO
     I feel that a simple snipmate like implementation would be good enough
 
   * tag based completion sample implementation
+
+  * rename cell_list to list_cells?
 
   * implementation about 'accessing editor features' such as get lines, get
     cursor position to be independent of editor implementation.
@@ -636,7 +649,7 @@ TODO
 
   * Announce at Reddit after some Emacs support has been written?
 
-  * replace bufnr by bufid beacuse bufnr is special to Vim
+  * python gather with timeout to catch issues (see examples.py, CompletionBasedOnFiles)
 
 TIPS:
 =====
@@ -646,3 +659,27 @@ TIPS:
 TODOS/ LINKS
 ============
   https://www.semanticscholar.org/paper/Contextual-Code-Completion-Using-Machine-Learning-Das-Shah/3d426d5d686db3dfa5cad88dbbf0bcf443828cf6
+
+
+WHY?
+====
+Well - there has been a long war about which tools are best. Switching tools is
+hard, because you have kind of lock in.
+
+Lanugages people are used to or Editors want to be using:
+  * Common denominator is JS/Typescript
+  * NeoVim is heading towards lua
+  * Vim has VimL (sucks for speed reasons) -> historically Python has been used most
+  * Emacs -> Elisp
+  * external tools (lanugage servers) are written in many languages
+  * ....
+=> so a choice cannot be made easily
+
+Lua and python could be the same runtime:
+  https://labix.org/lunatic-python
+
+and JS is browser ready, but others are type safe or faster.
+So .. - do what you want - but in a way others can reuse your work
+
+So use whatever you know best
+
