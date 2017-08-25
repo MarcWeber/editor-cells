@@ -17,7 +17,12 @@ Combine reusable cells the way you want
 
 SHOTS / Videos
 ==============
- TODO
+This gif animation shows python based completion taking distance to cursor into account.
+The code triggering the completion is writen in VimL
+![alt text](https://github.com/MarcWeber/editor-cells/raw/master/images/py-sample-completion-external-process-with-auto-completion.gif "Demo Gif Animation 1")
+
+You can write your own completions easily such as cells#examples#TraitCompletionLocalVars.
+This sample code finds function arguments and local vars triggering completions for them.
 
 VIM exmaple
 ===========

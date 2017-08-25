@@ -18,10 +18,8 @@ endf
 fun! cells#viml#completions#Compare(a, b)
   let asm = has_key(a:a, 'strong_match')
   let bsm = has_key(a:b, 'strong_match')
-
   return ((asm == bsm) ? (a:a.w - a:b.w > 0) : ( asm - bsm)) ? -1 : 1
 endf
-
 
 fun! cells#viml#completions#TraitAutoTrigger(cell) abort
   " automatically triggers completions after specific characters for given
@@ -130,7 +128,6 @@ fun! cells#viml#completions#Trait(cell) abort
 
     let g:completions = completions
     let completions = sort(values(completions), 'cells#viml#completions#Compare')
-
     let copmletions = completions[0:self.limit]
 
     for c in completions
@@ -189,7 +186,7 @@ fun! cells#viml#completions#Trait(cell) abort
 
   fun! a:cell.handle_completion(findstart, base) abort
     if a:findstart
-      let s:c.have_completions = has_key(s:c, 'current_completions') &&  s:c.current_completions.pos == getpos('.')
+      let s:c.have_completions = has_key(s:c, 'current_completions') " && s:c.current_completions.pos == getpos('.')
 
       if s:c.have_completions
         return s:c.current_completions.column-1
