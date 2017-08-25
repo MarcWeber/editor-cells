@@ -39,8 +39,7 @@ fun! cells#traits#Ask(cell) abort
 
     fun! request.process_wait_for(wait_for_id)
       if has_key(self.replies_to_be_waited_for, a:wait_for_id)
-        let event = remove(self.replies_to_be_waited_for, a:wait_for_id)
-        call self.process_event_waited_for()
+        call self.process_event_waited_for(remove(self.replies_to_be_waited_for, a:wait_for_id))
       else
         let self.waiting_for[a:wait_for_id] = 1
       endif

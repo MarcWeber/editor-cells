@@ -60,7 +60,7 @@ fun! CompleteMonths(findstart, base)
   endif
 endfun
 
-fun! SetupVimTestCells()
+fun! SetupVimTestCells() " [VIML ONLY]
   call append('$', ['','','',''])
 
   let traits = [
@@ -87,7 +87,7 @@ fun! SetupVimTestCells()
 endf
 
 
-fun! SetupVimTestCellsCompletionAutoTrigger()
+fun! SetupVimTestCellsCompletionAutoTrigger() " [VIML ONLY]
   call append('$', ['','','',''])
 
   let traits = [
@@ -118,9 +118,10 @@ endf
 
 let s:this_dir = expand('<sfile>:p:h')
 
-fun! SetupPyInsideVimTestCells()
+fun! SetupPyInsideVimTestCells() " [ python 2 ]
   " Python2 code without asyncio examples
   " Runs in main thread within Vim
+  " You may want to use the py3 code instead see below
 
   for py_cmd in  ['python3']
     if has(py_cmd)
@@ -146,6 +147,8 @@ endif
 endf
 
 fun! SetupProjectFilesCell()
+  " setup a cell returning project files, can be used by python completion
+  " example CompletionBasedOnFiles
   let c = cells#viml#Cell({})
   fun! c.l_project_files(event)
     call self.reply_now(a:event, cells#util#Flatten1(map([s:this_dir.'/**/*.vim', s:this_dir.'/**/*.py', s:this_dir.'/README.md'], 'split(glob(v:val), "\n")')))
@@ -157,6 +160,12 @@ fun! SetupPy3TestCellsAsPyThreadWithinVim()
   " provide list of filenames for CompletionBasedOnFiles
   call SetupProjectFilesCell()
 
+  " PROBLEMS TO THINK ABOUT
+  " * should run in its own Python thread, so that code can keep running?
+  " * that could should not call into Vim (could crash Vim)
+  " * vim must be notified if there are events to be passed from Python to Vim
+  "   (eg using a 1ms timer?)
+
   let py3_cell_collection_cell = cells#viml#Cell({'traits': ['cells#vim8#CellCollectionExternalProcessTrait'], 'cmd': ['python', s:this_dir.'/../bin/py3cellcollection.py'], 'pipe_dump_prefix' : 'py3'  })
   " TODO use new cell_new_by_name syntax, see SetupPy3TestCellsExternalProcess
   " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Mappings'})
@@ -166,26 +175,24 @@ fun! SetupPy3TestCellsAsPyThreadWithinVim()
 endf
 
 
-fun! SetupPy3TestCellsExternalProcess()
-  " TODO
+fun! SetupPy3TestCellsExternalProcess() " [Python3, external_process]
   " provide list of filenames for CompletionBasedOnFiles
   call SetupProjectFilesCell()
 
   let py3_cell_collection_cell = cells#viml#Cell({'traits': ['cells#vim8#CellCollectionExternalProcessTrait'], 'cmd': ['python', s:this_dir.'/../bin/py3cellcollection.py', '--debug'], 'pipe_dump_prefix' : 'py3' })
-  " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Mappings'})
-  " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Signs'})
-  " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Quickfix'})
-  " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.CompletionBasedOnFiles'})
+  " call py3_cell_collection_cell.cell_new_by_name({'name': 'cells.examples.Mappings'})
+  " call py3_cell_collection_cell.cell_new_by_name({'name': 'cells.examples.Signs'})
+  " call py3_cell_collection_cell.cell_new_by_name({'name': 'cells.examples.Quickfix'})
+  " call py3_cell_collection_cell.cell_new_by_name({'name': 'cells.examples.CompletionBasedOnFiles'})
   call py3_cell_collection_cell.cell_new_by_name({'name': 'cells.asyncio.examples.CompletionBasedOnFiles', 'args': [], 'kargs': {'id': 'CompletionBasedOnFiles'}})
 
-
-"   let by_filetype = []
-"   call add(by_filetype, {
-"     \ 'filetype_pattern' : '.*',
-"     \ 'when_regex_matches_current_line': '[a-z]|',
-"     \ 'completing_cells': ['all']
-"     \ })
-"   call cells#viml#Cell({'traits': ['cells#viml#completions#TraitAutoTrigger'], 'by_filetype':  by_filetype})
+  " let by_filetype = []
+  " call add(by_filetype, {
+  "   \ 'filetype_pattern' : '.*',
+  "   \ 'when_regex_matches_current_line': '[a-z]|',
+  "   \ 'completing_cells': ['all']
+  "   \ })
+  " call cells#viml#Cell({'traits': ['cells#viml#completions#TraitAutoTrigger'], 'by_filetype':  by_filetype})
 endf
 
 " echom 'use the following examples call SetupVimTestCells | call SetupVimTestCells()'

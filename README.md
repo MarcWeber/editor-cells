@@ -11,13 +11,13 @@ Features supported:
   * templates (coming)
   * signs
   * error lists
+  * write using the language you know best (VimL/Python/..)
 
 Combine reusable cells the way you want
 
 SHOTS / Videos
 ==============
  TODO
-
 
 VIM exmaple
 ===========
@@ -180,27 +180,34 @@ Example cell
 
 EVENTS Python implementation
 ============================
-Python 2.x / no asyncio
-No async features -> see pyinline/*
+Python 2.x without asyncio (for completness)
+No asyncio features -> see pyinline/*
 Seems to work fine from :py and :py builtin interpreter
+see sample-vimrcs/vimrc about how to set it up
+(TODO: update l_reply and ask code to look like Vim code)
 
-Python 3.x & asyncio
+Python 3.x & asyncio (recommended)
 Has asyncio which is nice for abstracting callbacks and waiting for
-event replies, but is harder to setup because Python should keep running
-for instance generating replies while control is back at Vim.
-Stopping the 'asyncio' loop causes slow down, using multiple threads
-requires threadsafe message passing
+event replies, but is harder to setup because Python can wait for external
+stuff when execution control is handed back to Vim.
 
-external implementation will be written soon so that event passing can be done
+For sake of easinesss the only supported implementation therefore is the
+external process implementation for now, see sample-vimrcs/vimrc.
 by stdin/out easily
 
-See sample-vimrcs/ about how to actually populate cell collections in python
-and use them within Vim.
+class CompletionBasedOnFiles is a nice example illustrating about how
+to start to use asnyc functions to produce a reply which itself waits for
+results from events (gather). ask_iter could be used to process results as they
+come in.
+
+EVENTS JavaScript/PHP/Java/Scala/Go/Haskell/... 
+===============================================
+to be implsemented
 
 SPECIAL EVENTS / CONCEPTS / COMMON FEATURES
 ============================================
 Too much specification can hurt. So if you need keys/events add them and
-document the main features. Things will be fixed on the fly.
+document the main features. Things will be fixed on the fly :-P.
 
 " internal use:
 
