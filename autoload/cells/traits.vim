@@ -36,6 +36,31 @@ fun! cells#traits#Ask(cell) abort
 
   fun! a:cell.ask(cb, event, ...) abort
     let request = a:0 > 0 ? a:1 : {}
+
+    fun! request.process_wait_for(wait_for_id)
+      if has_key(self.replies_to_be_waited_for, a:wait_for_id)
+        let event = remove(self.replies_to_be_waited_for, a:wait_for_id)
+        call self.process_event_waited_for()
+      else
+        let self.waiting_for[a:wait_for_id] = 1
+      endif
+    endf
+    fun! request.process_event_waited_for(event)
+      for wait_for in get(a:event, 'wait_for', [])
+        call self.process_wait_for(wait_for)
+      endfor
+
+      if has_key(a:event, 'result') || has_key(a:event, 'error')
+        call add(self.results, a:event)
+      endif
+      if has_key(a:event, 'results')
+        let self.results = self.results + a:event.results
+      endif
+    endf
+    let request_id = 'viml-'. cells#viml#NextId()
+    let self.requests[request_id] = request
+    let a:event.request_id = request_id
+
     let request.cb = a:cb
     let request.event = a:event
 
@@ -44,19 +69,13 @@ fun! cells#traits#Ask(cell) abort
     let request.waiting_for = {}
 
     " emit event watiing for replies, calling cb when ready
-    let a:event.request_id = cells#viml#NextId()
     let a:event.reply_to = self.id
-
-    let self.requests[request.event.request_id] = request
-
+    call cells#util#Log('request_id: '.request_id.' vor emit '.string(request))
     call g:cells.emit(a:event)
+    call cells#util#Log('request_id: '.request_id.' vor after emit '.string(request))
     let request.results = a:event.results
-    for cell_id in a:event.wait_for
-      if has_key(request.replies_to_be_waited_for, cell_id)
-        call add(request.results, remove(request.replies_to_be_waited_for, cell_id))
-      else
-        let request.waiting_for[cell_id] = 1
-      endif
+    for wait_for_id in a:event.wait_for
+      call request.process_wait_for(wait_for_id)
     endfor
     call self.__check_request_finished(request)
     return a:event.request_id
@@ -75,33 +94,19 @@ fun! cells#traits#Ask(cell) abort
   endf
 
   fun! a:cell.l_reply(event) abort
-    if !has_key(a:event, 'sender') | echoe 'received reply missing sender key'| endif
     let request_id = a:event.request_id
-
     let request = self.requests[request_id]
-
+    call cells#util#Log('l_reply request_id '.request_id.' request '.string(request))
+    call cells#util#Log('l_reply request_id '.request_id.' event '.string(a:event))
     if has_key(request.waiting_for, a:event.wait_for_id)
-
       call remove(request.waiting_for, a:event.wait_for_id)
-
-      for cell_id in get(a:event, 'wait_for', [])
-        if has_key(request.replies_to_be_waited_for, cell_id)
-          call add(request.results, remove(request.replies_to_be_waited_for, cell_id))
-        else
-          let  request.waiting_for[cell_id] = 1
-        endif
-      endfor
-      if has_key(a:event, 'result') || has_key(a:event, 'error')
-        call add(request.results, a:event)
-      endif
-      if has_key(a:event, 'results')
-        let request.results = request.results + a:event.results
-      endif
+      call request.process_event_waited_for(a:event)
     else
       let request.replies_to_be_waited_for[a:event.wait_for_id] = a:event
     endif
 
     call self.__check_request_finished(request)
+    call cells#util#Log('l_reply request_id '.request_id.' finsihed request fun finished '.string(request))
   endf
 
 

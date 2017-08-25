@@ -125,3 +125,7 @@ function! cells#util#OutputAsList(command) abort
     redir END
     return split(redir_lines, '\n')[2:-2]
 endf
+
+function! cells#util#Log(s)
+  " call writefile([a:s], '/tmp/log-vim', 'append')
+endf

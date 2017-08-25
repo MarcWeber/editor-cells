@@ -118,8 +118,8 @@ Event dictionary keys:
 
   wait_for: [] list of cell_ids to be wait for till the result is complete (async replies)
   wait_for_id: Eeach reply must contain this key to tell the asking cell that this reply was received so that it knows when all replies have arrived
-  resust/error: reply result or reply exception
-  results:  [] list you can add results to (immediate replies). The result should have the form {'result/error': ..}
+  result/error: reply result or reply exception
+  results:  [] list you can add results to (immediate replies). The result should have the form {'result/error': .., [...]}
   wait_for_id__for_requesting_cell: When passing an event to another collection which replies asynchronously, see bin/py3cellcollection.py
 
 CELL COLLECTIONS

@@ -1,6 +1,10 @@
 set nocompatible
 filetype indent plugin on | syn on
 
+for file in ['/tmp/log-vim','/tmp/log-python']
+  if file_readable(file) | call delete(file) | endif
+endfor
+
 " fun! G() abort
 "   for c in g:calls
 "     call call('call', c)
@@ -154,10 +158,11 @@ fun! SetupPy3TestCellsAsPyThreadWithinVim()
   call SetupProjectFilesCell()
 
   let py3_cell_collection_cell = cells#viml#Cell({'traits': ['cells#vim8#CellCollectionExternalProcessTrait'], 'cmd': ['python', s:this_dir.'/../bin/py3cellcollection.py'], 'pipe_dump_prefix' : 'py3'  })
-  call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Mappings'})
-  call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Signs'})
-  call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Quickfix'})
-  call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.CompletionBasedOnFiles'})
+  " TODO use new cell_new_by_name syntax, see SetupPy3TestCellsExternalProcess
+  " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Mappings'})
+  " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Signs'})
+  " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Quickfix'})
+  " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.CompletionBasedOnFiles'})
 endf
 
 
@@ -166,11 +171,12 @@ fun! SetupPy3TestCellsExternalProcess()
   " provide list of filenames for CompletionBasedOnFiles
   call SetupProjectFilesCell()
 
-  let py3_cell_collection_cell = cells#viml#Cell({'traits': ['cells#vim8#CellCollectionExternalProcessTrait'], 'cmd': ['python', s:this_dir.'/../bin/py3cellcollection.py'], 'pipe_dump_prefix' : 'py3' })
+  let py3_cell_collection_cell = cells#viml#Cell({'traits': ['cells#vim8#CellCollectionExternalProcessTrait'], 'cmd': ['python', s:this_dir.'/../bin/py3cellcollection.py', '--debug'], 'pipe_dump_prefix' : 'py3' })
   " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Mappings'})
   " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Signs'})
   " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.Quickfix'})
-  call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.CompletionBasedOnFiles'})
+  " call py3_cell_collection_cell.send_json({'new-cell-instance': 'cells.examples.CompletionBasedOnFiles'})
+  call py3_cell_collection_cell.cell_new_by_name({'name': 'cells.asyncio.examples.CompletionBasedOnFiles', 'args': [], 'kargs': {'id': 'CompletionBasedOnFiles'}})
 endf
 
 " echom 'use the following examples call SetupVimTestCells | call SetupVimTestCells()'

@@ -182,8 +182,11 @@ fun! cells#viml#EditorCoreInterface() abort
       if !bufexists(bufnr) || !bufwinnr(bufnr) | continue | endif
       let b = {}
       let b['bufid'] = bufnr
-      let b['filename'] = expand('%')
+      let b['filename'] = expand(bufname(bufnr))
       let b['modify_state'] = 'todo'
+      " TODO safe as bufvar whenever a change happens so that completion code
+      " knows which files got updated
+      " let b['changenr'] = changenr()
       if bufnr == currentnr
         let current = b
       endif
@@ -194,7 +197,9 @@ fun! cells#viml#EditorCoreInterface() abort
   endf
 
   fun! c.l_editor_buffer_lines(event)
-    call self.reply_now(a:event, getbufline(get(a:event, 'bufid', '%') ,get(a:event, 'from_line', 1), get(a:event, 'to_line', line('.'))))
+    let lines = getbufline(get(a:event, 'bufid', '%') ,get(a:event, 'from_line', 1), get(a:event, 'to_line', line('.')))
+    let g:lines = lines
+    call self.reply_now(a:event, lines)
   endfun
 
   fun! c.__emit_buffer_event(event_data)
