@@ -18,7 +18,8 @@ Combine reusable cells the way you want
 SHOTS / Videos
 ==============
 This gif animation shows python based completion taking distance to cursor into account.
-The code triggering the completion is writen in VimL
+The code triggering the completion is writen in VimL.
+
 ![alt text](https://github.com/MarcWeber/editor-cells/raw/master/images/py-sample-completion-external-process-with-auto-completion.gif "Demo Gif Animation 1")
 
 You can write your own completions easily such as cells#examples#TraitCompletionLocalVars.
@@ -77,13 +78,15 @@ VIM exmaple
     \ 'when_regex_matches_current_line': '[a-z][a-z][a-z]|',
     \ 'completing_cells': ['all']
     \ })
+  call cells#viml#Cell({'traits': ['cells#viml#completions#TraitAutoTrigger'], 'by_filetype':  by_filetype})
 
   " As alternative map <s-space> to kick of completion provide by cell ids id1, id2
+  " You can get the cell id by cell.id like this: traits['cells#examples#TraitTestCompletionThisBuffer'].id
+  " Avoid completing_cells_selector to target all cells providing completions
   nnoremap <s-space> :call g:cells.emit({'type': 'complete', 'position': getpos('.'), 'limit': self.limit, 
     \ 'match_types' : ['prefix', 'ycm_like', 'camel_case_like', 'ignore_case', 'last_upper'],
     \ 'completing_cells_selector' : {'cell_ids': [id1, id2]}
     })
-  call cells#viml#Cell({'traits': ['cells#viml#completions#TraitAutoTrigger'], 'by_filetype':  by_filetype})
 
   " See sample-vimrcs/* about how to integrate python cells
 
