@@ -6,7 +6,6 @@ if !exists('g:cells') | let g:cells = {} | endif |let s:c = g:cells
 fun! cells#viml#completions#EventData(event)
   " expected event keys
   "  event['position'] = getpos('.')
-  "  event['position'] = getpos('.')
   let event = a:event
   let col_m1 = event.position[3]
   let line   = getline('.')
@@ -95,6 +94,10 @@ fun! cells#viml#completions#Trait(cell) abort
 
   " TODO:
   fun! a:cell.completions_received(request) abort
+    call self.completions_received2(a:request)
+  endf
+
+  fun! a:cell.completions_received2(request) abort
     if self.position != getpos('.')
       echom 'aborting completion because cursor moved'
       return
@@ -106,7 +109,8 @@ fun! cells#viml#completions#Trait(cell) abort
     let completions = {}
 
     for i in all
-      let pref = a:request.event.event.line_split_at_cursor[0][column-1:i.column-2]
+      let l = a:request.event.event.line_split_at_cursor[0]
+      let pref = l[column-1: i.column - len(l) -2 ]
       if pref != ""
         for c in i.completions
           let c.abbrev = c.word

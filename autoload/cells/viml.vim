@@ -94,7 +94,7 @@ fun! cells#viml#emit_selector(event) abort
 endf
 
 fun! cells#viml#emit(event, viml_cells) abort
-  echom string(a:event)
+  call cells#util#Log(a:event)
   let listener = 'l_'.a:event.type
   for cell in a:viml_cells
     if has_key(cell, listener)
@@ -197,7 +197,7 @@ fun! cells#viml#EditorCoreInterface() abort
   endf
 
   fun! c.l_editor_buffer_lines(event)
-    let lines = getbufline(get(a:event, 'bufid', '%') ,get(a:event, 'from_line', 1), get(a:event, 'to_line', line('.')))
+    let lines = getbufline(get(a:event, 'bufid', '%') ,get(a:event, 'from_line', 1), get(a:event, 'to_line', line('$')))
     let g:lines = lines
     call self.reply_now(a:event, lines)
   endfun
