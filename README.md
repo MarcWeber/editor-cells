@@ -18,6 +18,8 @@ Features supported:
 
 Combine reusable cells the way you want
 
+![list of cells](https://github.com/MarcWeber/editor-cells/blob/master/Cells.md)
+
 SHOTS / Videos
 ==============
 This gif animation shows python based completion taking distance to cursor into account.
@@ -228,7 +230,7 @@ There is a new option using the RPC protocol built into NeoVim
 
 EVENTS JavaScript/PHP/Java/Scala/Go/Haskell/... 
 ===============================================
-to be implsemented
+to be implemented
 
 SPECIAL EVENTS / CONCEPTS / COMMON FEATURES
 ============================================
