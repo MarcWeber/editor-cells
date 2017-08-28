@@ -158,7 +158,7 @@ fun! cells#viml#completions#Trait(cell) abort
     call self.setup_mappings()
   endf
 
-  fun! a:cell.completion_end()
+  fun! a:cell.completion_ended()
     call self.clear_mappings()
   endf
 
@@ -193,13 +193,12 @@ fun! cells#viml#completions#Trait(cell) abort
 
   fun a:cell.completend_end_unmap_detect_start()
     " NeoVim? TODO
-    let self.timer = timer_start(10, function(self.completend_end_unmap_detect_start_timer, [], self) , {"repeat": -1})
+    call timer_start(10, function(self.completend_end_unmap_detect_start_timer, [], self) , {"repeat": -1})
   endf
   fun a:cell.completend_end_unmap_detect_start_timer(timer)
     if !pumvisible()
-        call timer_stop(self.timer)
-        call remove(self, 'timer')
-        call self.completion_end()
+      call timer_stop(a:timer)
+      call self.completion_ended()
     endif
   endf
 
