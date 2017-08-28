@@ -209,14 +209,22 @@ Has asyncio which is nice for abstracting callbacks and waiting for
 event replies, but is harder to setup because Python can wait for external
 stuff when execution control is handed back to Vim.
 
-For sake of easinesss the only supported implementation therefore is the
-external process implementation for now, see sample-vimrcs/vimrc.
-by stdin/out easily
 
 class CompletionBasedOnFiles is a nice example illustrating about how
 to start to use asnyc functions to produce a reply which itself waits for
 results from events (gather). ask_iter could be used to process results as they
 come in.
+
+Python within Vim 8:
+--------------------
+* Recommended: Python 3 within Vim: sample-vimrcs/vimrc -> SetupPy3TestCellsExternalProcess()
+* If you want to run ceels in many external processes see sample-vimrcs/vimrc -> SetupPy3AsyncioTestCellsWithinVim()
+* discouraged: Py2 (for completness) inside Vim: sample-vimrcs/vimrc -> SetupPyInsideVimTestCells()
+
+Python within NeoVim 8:
+--------------------
+NeoVim: Should be easy to adopt the code (TODO).
+There is a new option using the RPC protocol built into NeoVim
 
 EVENTS JavaScript/PHP/Java/Scala/Go/Haskell/... 
 ===============================================
@@ -592,9 +600,7 @@ TODO
     - within Vim with timer/callback
     - as external process
 
-  * Integrate YCM
-
-  * Integrate Eclim
+  * Integrate YCM, Eclim, tools
 
   * completions after @ (host completion) within file / project files
 
@@ -673,9 +679,9 @@ TODO
   * move vim-dev-plugin completion into a cell as sample viml completion and
     goto thing at cursor / definition ?
 
-  * Announce at Reddit after some Emacs support has been written?
+  * Emacs & NeoVim Support
 
-  * python gather with timeout to catch issues (see examples.py, CompletionBasedOnFiles)
+  * Python gather with timeout to catch issues (see examples.py, CompletionBasedOnFiles)
 
 TIPS:
 =====
