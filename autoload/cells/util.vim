@@ -127,5 +127,6 @@ function! cells#util#OutputAsList(command) abort
 endf
 
 function! cells#util#Log(s)
-  " call writefile([a:s], '/tmp/log-vim', 'append')
+  " let s = type(a:s) == type('') ? a:s : string(a:s) 
+  " call writefile([s], '/tmp/log-vim', 'append')
 endf

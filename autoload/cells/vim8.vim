@@ -26,9 +26,7 @@ fun! cells#vim8#CellCollectionExternalProcessTrait(cell) abort
     else
       let event = a:event.event
     endif
-    " if  confirm(string(event), "y\nn")
-      call self.send_json(event)
-    " endif 
+    call self.send_json(event)
   endf
 
   fun! a:cell.l_restart_cmd()

@@ -12,6 +12,9 @@ Features supported:
   * signs
   * error lists
   * write using the language you know best (VimL/Python/..)
+  * to be tried:
+    Fit enough to implement client/server (browser) based support / no idea
+    about how fast it would be.
 
 Combine reusable cells the way you want
 
@@ -90,6 +93,13 @@ VIM exmaple
 
   " See sample-vimrcs/* about how to integrate python cells
 
+```
+
+EMACS example
+=============
+To be written
+```elisp
+; TODO
 ```
 
 WHAT IS A CELL?
@@ -572,6 +582,7 @@ They may help you make decisions
 
 TODO
 ====
+  * line based completion whole project
 
   * to n words completion if they occur very often nearby
 

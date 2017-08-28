@@ -90,12 +90,7 @@ fun! cells#viml#completions#Trait(cell) abort
     call self.cancel_ask('completions_received', {'type': 'completions', 'event': event, 'selector': get(a:event, 'completing_cells_selector', 'all')})
   endf
 
-  " TODO:
   fun! a:cell.completions_received(request) abort
-    call self.completions_received2(a:request)
-  endf
-
-  fun! a:cell.completions_received2(request) abort
     if self.position != getpos('.')
       echom 'aborting completion because cursor moved'
       return
@@ -147,6 +142,8 @@ fun! cells#viml#completions#Trait(cell) abort
         let nr += 1
       endfor
     endif
+
+    let g:completions = s:c.current_completions
 
     if len(s:c.current_completions) == 0 | return | endif
 
