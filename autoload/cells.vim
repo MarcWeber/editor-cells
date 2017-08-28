@@ -17,6 +17,7 @@ fun! cells#ProvideAPI()
       endif
 
       call cells#viml#emit_selector({'type': 'emit', 'event': a:event})
+      return ""
     endf
 
     fun! s:c.kill(selector)

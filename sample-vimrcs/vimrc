@@ -63,17 +63,17 @@ endfun
 fun! SetupVimTestCells() " [VIML ONLY]
   call append('$', ['','','',''])
 
-  let traits = [
-        \ 'cells#examples#TraitTestMappings',
-        \ 'cells#examples#TraitTestSigns',
-        \ 'cells#examples#TraitTestQuickfix',
-        \ 'cells#examples#TraitTestCompletionThisBuffer',
-        \ 'cells#examples#TraitTestCompletionAllBuffers',
-        \ 'cells#examples#TraitCompletionLastInsertedTexts',
-        \ 'cells#examples#TraitCompletionLocalVars',
-        \ ]
-  for t in traits
-    call cells#viml#Cell({'traits': [t]})
+  let traits = {
+        \ 'TestMappings' : 'cells#examples#TraitTestMappings',
+        \ 'TestSigns' : 'cells#examples#TraitTestSigns',
+        \ 'TestQuickfix' : 'cells#examples#TraitTestQuickfix',
+        \ 'TestCompletionThisBuffer' : 'cells#examples#TraitTestCompletionThisBuffer',
+        \ 'TestCompletionAllBuffers' : 'cells#examples#TraitTestCompletionAllBuffers',
+        \ 'CompletionLastInsertedTexts' : 'cells#examples#TraitCompletionLastInsertedTexts',
+        \ 'CompletionLocalVars' : 'cells#examples#TraitCompletionLocalVars',
+        \ }
+  for [k, t] in items(traits)
+    call cells#viml#Cell({'traits': [t], 'id': k})
   endfor
 
   call cells#viml#Cell({'traits': ['cells#examples#TraitCompletionFromCompletionFunction'], 'omnifuns': ['CompleteMonths'] })
@@ -146,6 +146,7 @@ END
 endif
 endf
 
+
 fun! SetupProjectFilesCell()
   " setup a cell returning project files, can be used by python completion
   " example CompletionBasedOnFiles
@@ -182,6 +183,7 @@ fun! SetupPy3TestCellsExternalProcess() " [python3 external_process]
   " call py3_cell_collection_cell.cell_new_by_name({'name': 'cells.examples.Signs'})
   " call py3_cell_collection_cell.cell_new_by_name({'name': 'cells.examples.Quickfix'})
   " call py3_cell_collection_cell.cell_new_by_name({'name': 'cells.examples.CompletionBasedOnFiles'})
+  " call py3_cell_collection_cell.cell_new_by_name({'name': 'cells.examples.Completion'})
   call py3_cell_collection_cell.cell_new_by_name({'name': 'cells.asyncio.examples.CompletionBasedOnFiles', 'args': [], 'kargs': {'id': 'CompletionBasedOnFiles'}})
 
   let by_filetype = []

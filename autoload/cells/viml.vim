@@ -130,7 +130,7 @@ fun! cells#viml#CellsBySelector(selector) abort
       let l_listens_to = 
       return map(filter(copy(s:c.cells), 'has_key(v:val, '.string('l_'.a:selector.listens_to).')'), 'v:val.id')
     else
-      throw "unkown selector ".string(a:selector)
+      throw "unknown selector ".string(a:selector)
     endif
   elseif type(a:selector) == type('') && a:selector == 'all'
     return values(s:c.cells)

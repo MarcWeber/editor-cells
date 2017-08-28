@@ -34,6 +34,14 @@ VIM exmaple
 ===========
 
 ```viml
+  set rtp+=path-to-editor-cells
+
+  call cells#viml#CellCollection()
+  " Editor core events implementation
+  call cells#viml#EditorCoreInterface()
+  call cells#ProvideAPI()
+
+
   " ask multiple completion strategies to provide their completions:
   let traits = {
         \ 'cells#examples#TraitTestCompletionThisBuffer': {},
@@ -88,10 +96,10 @@ VIM exmaple
   " As alternative map <s-space> to kick of completion provide by cell ids id1, id2
   " You can get the cell id by cell.id like this: traits['cells#examples#TraitTestCompletionThisBuffer'].id
   " Avoid completing_cells_selector to target all cells providing completions
-  nnoremap <s-space> :call g:cells.emit({'type': 'complete', 'position': getpos('.'), 'limit': self.limit, 
+  inoremap <s-space> <c-r>=call g:cells.emit({'type': 'complete', 'position': getpos('.'), 'limit': 20, 
     \ 'match_types' : ['prefix', 'ycm_like', 'camel_case_like', 'ignore_case', 'last_upper'],
-    \ 'completing_cells_selector' : {'cell_ids': [id1, id2]}
-    })
+    \ 'completing_cells_selector' : {'cell_ids': [id1, id2]}<cr>
+    \ })
 
   " See sample-vimrcs/* about how to integrate python cells
 
@@ -684,6 +692,8 @@ TODO
   * Emacs & NeoVim Support
 
   * Python gather with timeout to catch issues (see examples.py, CompletionBasedOnFiles)
+
+  * Plugin system to manage and update third party plugins
 
 TIPS:
 =====

@@ -103,6 +103,7 @@ fun! cells#examples#TraitCompletionLastInsertedTexts(cell) abort " {{{
 endf " }}}
 
 
+
 fun! cells#examples#TraitCompletionLocalVars(cell) abort
   " very fuzzy searching of important vars nearby the cursor which you're very
   " likely to be using ..
@@ -134,27 +135,25 @@ fun! cells#examples#TraitCompletionLocalVars(cell) abort
       endif
   endf
 
-  fun! a:cell.l_completions(event)
+  fun! a:cell.local_vars(linenr)
 
-    let word_before_cursor = matchstr(a:event.event.line_split_at_cursor[0], '\zs\w*$')
     let words = {}
     let linenr = 1
     let lines_max = 500
 
     let nearby_cursor_lines = 100
 
-    let linenr = a:event.event.position[1]
+    let linenr = a:linenr
     let min = linenr - lines_max
     if min < 0 | let min = 1 | endif
 
     let regexes_by_filename = [
         \ ['\%(\.js\)$'       , 'var\s\(\S\+\)\s', self.__first_match],
         \ ['\%(\.js\|\.vim\)$', 'function\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__post_function_fun_args],
-        \ ['\%(\.js)$', 'fun\S*\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__post_function_vim],
+        \ ['\%(\.vim\)$', 'fun\S*!\?\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__post_function_vim],
         \ ['\%(\.vim\)$'      , 'let\s\(\S\+\)\s', self.__first_match],
         \ ['\%(\.vim\)$'      , 'for\s\+\(\S\+\)', self.__first_match]
         \ ]
-
 
     let ext = expand('%:t')
 
@@ -164,12 +163,12 @@ fun! cells#examples#TraitCompletionLocalVars(cell) abort
           \ }
     let break_on_regex = get(break_on_regex_by_ext, ext, '')
 
-    " let regexes_by_filename = filter(copy(regexes_by_filename), 'ext =~ v:val[0]')
+    let regexes_by_filename = filter(copy(regexes_by_filename), 'ext =~ v:val[0]')
     let words = {}
 
     while linenr >= min
       let line = getline(linenr)
-      let certainity = 14 - (1.0 + a:event.event.position[1] - linenr) / lines_max
+      let certainity = 10.0 + ( (a:linenr - linenr) / lines_max)
       if (break_on_regex != '' && line =~  break_on_regex) || linenr < min | break | endif
 
       for l in regexes_by_filename
@@ -180,6 +179,14 @@ fun! cells#examples#TraitCompletionLocalVars(cell) abort
       endfor
       let linenr -= 1
     endwhile
+    return words
+  endf
+
+  fun! a:cell.l_completions(event)
+
+    let word_before_cursor = matchstr(a:event.event.line_split_at_cursor[0], '\zs\w*$')
+
+    let words = self.local_vars(a:event.event.position[1])
 
     let completions = cells#util#match_by_type(values(words), word_before_cursor, a:event.event.match_types)
     for c in completions

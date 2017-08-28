@@ -154,31 +154,53 @@ fun! cells#viml#completions#Trait(cell) abort
     call feedkeys("\<c-x>\<c-o>", 't')
   endf
 
+  fun! a:cell.completion_start()
+    call self.setup_mappings()
+  endf
+
+  fun! a:cell.completion_end()
+    call self.clear_mappings()
+  endf
+
   fun! a:cell.setup_mappings()
     " cannot return mappings, because Vim cannot call a function on rhs
     " when completing (it aborts completion)
-    for lhs in  self.complete_ends
-      exec 'inoremap <buffer> '.lhs.' <c-r>=g:cells.cells['. string(self.id) .'].clear_mappings()<cr>'.lhs
-    endfor
+    " for lhs in  self.complete_ends
+    "   exec 'inoremap <buffer> '.lhs.' <c-r>=g:cells.cells['. string(self.id) .'].clear_mappings()<cr>'.lhs
+    " endfor
     let nr = 1
     for lhs in self.goto_mappings
       exec 'inoremap <buffer> '.lhs. ' 'repeat("<c-n>", nr)
       let nr += 1
     endfor
+
+    call self.completend_end_unmap_detect_start()
   endf
 
   fun! a:cell.clear_mappings()
     " call g:cells.emit({'type': 'mappings_changed', 'sender': self.id})
 
-    for lhs in  self.complete_ends
-      exec 'iunmap <buffer> '.lhs
-    endfor
+    " for lhs in  self.complete_ends
+    "   exec 'iunmap <buffer> '.lhs
+    " endfor
 
     for lhs in self.goto_mappings
       exec 'iunmap <buffer> '.lhs
       " could be smarter, thus restorting completions
     endfor
     return ""
+  endf
+
+  fun a:cell.completend_end_unmap_detect_start()
+    " NeoVim? TODO
+    let self.timer = timer_start(10, function(self.completend_end_unmap_detect_start_timer, [], self) , {"repeat": -1})
+  endf
+  fun a:cell.completend_end_unmap_detect_start_timer(timer)
+    if !pumvisible()
+        call timer_stop(self.timer)
+        call remove(self, 'timer')
+        call self.completion_end()
+    endif
   endf
 
   fun! a:cell.handle_completion(findstart, base) abort
@@ -197,7 +219,7 @@ fun! cells#viml#completions#Trait(cell) abort
         if self.old_omnifunc != 'cells#viml#completions#CompletionFunction'
           exec 'set omnifunc='. self.old_omnifunc
         endif
-        call self.setup_mappings()
+        call self.completion_start()
         let r = s:c.current_completions.completions
         call remove(s:c, 'current_completions')
         return r
