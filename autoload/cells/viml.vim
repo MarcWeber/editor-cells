@@ -15,7 +15,9 @@ fun! cells#viml#Cell(cell) abort
   " adds an unique id
   " registers the cell at cells
   let cell = a:cell
-  let cell.id = 'viml:'. cells#viml#NextId()
+  if !has_key(cell, 'id')
+    let cell.id = 'viml:'. cells#viml#NextId()
+  endif
   let s:c.cells[cell.id] = cell
 
 

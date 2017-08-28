@@ -133,7 +133,7 @@ fun! cells#viml#completions#Trait(cell) abort
     let s:c.current_completions = {'completions':  completions, 'column': column, 'pos': self.position}
 
     if len(self.goto_mappings) > 0
-      call g:cells.emit({'type': 'mappings_changed', 'sender': self.id})
+      " call g:cells.emit({'type': 'mappings_changed', 'sender': self.id})
       let nr = 0
       for x in self.goto_mappings
         if len(s:c.current_completions.completions) -1 < nr | break | endif
@@ -168,7 +168,7 @@ fun! cells#viml#completions#Trait(cell) abort
   endf
 
   fun! a:cell.clear_mappings()
-    call g:cells.emit({'type': 'mappings_changed', 'sender': self.id})
+    " call g:cells.emit({'type': 'mappings_changed', 'sender': self.id})
 
     for lhs in  self.complete_ends
       exec 'iunmap <buffer> '.lhs

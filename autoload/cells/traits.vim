@@ -94,6 +94,7 @@ fun! cells#traits#Ask(cell) abort
 
   fun! a:cell.l_reply(event) abort
     let request_id = a:event.request_id
+    if !has_key(self.requests, request_id) | call cells#util#Log('request_id '.request_id.' no longer known ?') | return | endif
     let request = self.requests[request_id]
     call cells#util#Log('l_reply request_id '.request_id.' request '.string(request))
     call cells#util#Log('l_reply request_id '.request_id.' event '.string(a:event))
