@@ -628,6 +628,7 @@ They may help you make decisions
 
 TODO
 ====
+
   * line based completion whole project
 
   * to n words completion if they occur very often nearby
@@ -636,10 +637,6 @@ TODO
 
   * for python and VimL create 'match_and_rate" function replacing the prefix,
     camel_case_like stuff - thus allow the user to define a function
-
-  * Finish Py asyncio backend
-    - within Vim with timer/callback
-    - as external process
 
   * Implement closing whatever is open (tags brackets) ...
     <div><div> should complete to
@@ -682,9 +679,6 @@ TODO
 
   * implementation about 'accessing editor features' such as get lines, get
     cursor position to be independent of editor implementation.
-
-  * goto ID like thing showing full lines -> this works good enough like tags
-    (search all files in project), but allow configurating files to be searched by glob patterns
 
   * kind of Buffer interface
 
