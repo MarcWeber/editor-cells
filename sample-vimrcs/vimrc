@@ -76,7 +76,7 @@ fun! SetupVimTestCells() " [VIML ONLY]
     call cells#viml#Cell({'traits': [t], 'id': k})
   endfor
 
-  call cells#viml#Cell({'traits': ['cells#examples#TraitCompletionFromCompletionFunction'], 'omnifuns': ['CompleteMonths'] })
+  call cells#viml#Cell({'traits': ['cells#examples#TraitCompletionFromCompletionFunction'], 'complete-functions': [{'complete-function':'CompleteMonths', 'filetype_regex': '.*'}] })
 
   sp | enew
   call append('$', [

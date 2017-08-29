@@ -323,12 +323,16 @@ endf
 
 fun! cells#examples#TraitCompletionFromCompletionFunction(cell) abort
   " Usage:
-  " call cells#viml#Cell({'traits': ['cells#examples#TraitCompletionFromCompletionFunction'], 'omnifuns': 'pythoncomplete#Complete' })
+  " call cells#viml#Cell({'traits': ['cells#examples#TraitCompletionFromCompletionFunction'], 'complete-functions': [{'filepath_regex':'\.py$', 'complete-function': 'pythoncomplete#Complete'}])
+
+  let a:cell['complete-functions'] = get(a:cell, 'complete-functions', [])
 
   fun! a:cell.l_completions(event)
+    let bname = bufname('%')
+    let active = filter(copy(self['complete-functions']), 'bname =~ v:val["filepath_regex"]')
     let completions = []
-    for f in self.omnifuns
-      call add(completions, cells#examples#CompletionsFromCompletionFunction(a:event, f))
+    for d in active
+      call add(completions, cells#examples#CompletionsFromCompletionFunction(a:event, d['complete-function']))
     endfor
     " let completions = cells#util#match_by_type(values(words), word_before_cursor, a:event.event.match_types)
     call self.reply_now(a:event, completions)
@@ -336,7 +340,6 @@ fun! cells#examples#TraitCompletionFromCompletionFunction(cell) abort
 
   return a:cell
 endf
-
 
 fun! cells#examples#TraitDefinitionsAndUsages(cell) abort
   " Usage:

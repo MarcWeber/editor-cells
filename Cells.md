@@ -32,7 +32,7 @@ description: complete from all buffers (Python implementation CompletionBasedOnF
 
 cells#examples#TraitCompletionFromCompletionFunction(cell)
 tags: [completion]
-description: add completions from Vim completion function
+description: add completions from Vim completion function. Eg wrapper for Eclim completion
 
 cells#examples#TraitDefinitionsAndUsages
 description: allows to use l_definitions and l_usages within Vim

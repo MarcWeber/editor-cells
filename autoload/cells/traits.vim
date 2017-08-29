@@ -1,5 +1,4 @@
 " commonly used code for cells
-
 fun! cells#traits#Ask(cell) abort
   " usage:
   " call cells#traits#Ask(cell)

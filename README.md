@@ -121,6 +121,18 @@ VIM exmaple
 
   " See sample-vimrcs/* about how to integrate python cells
 
+  " Example eclim completion wrappers:
+  let eclim_completions = {}
+  let eclim_completions['eclim_java'] = ['\.java$', 'eclim#java#complete#CodeComplete']
+  let eclim_completions['eclim_html'] = ['\.html$', 'eclim#html#complete#CodeComplete']
+  let eclim_completions['eclim_xml']  = ['\.xml$', 'eclim#xml#complete#CodeComplete']
+  let eclim_completions['eclim_js']   = ['\.js$', 'eclim#javascript#complete#CodeComplete']
+  let eclim_completions['eclim_css']  = ['\.css$', 'eclim#css#complete#CodeComplete']
+  let eclim_completions['eclim_php']  = ['\.php$', 'eclim#php#complete#CodeComplete'] " does not take care of Eclims goto PHP definiton yet
+  for [k,v] in eclim_completions
+    call cells#viml#Cell({'traits': ['cells#examples#TraitCompletionFromCompletionFunction'], 'id': k, 'completion-functions': [{'filetype_regex': v[0], 'completion-function': v[1]}]})
+  endfor
+
 ```
 
 EMACS example
@@ -604,9 +616,8 @@ So given a line foo.add[' its fine if one completions completes from the last
 
 Sample implementations:
 
-
   # use Vim's omnifunc
-  call cells#viml#Cell({'traits': ['cells#examples#TraitCompletionFromCompletionFunction'], 'omnifuns': 'pythoncomplete#Complete' })
+  call cells#viml#Cell({'traits': ['cells#examples#TraitCompletionFromCompletionFunction'], 'complete-functions': [{'complete-function': 'pythoncomplete#Complete', 'filetype_regex':'.'}])
 
   # words from buffer
   call cells#examples#TraitTestCompletion({})
