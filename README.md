@@ -55,6 +55,8 @@ VIM exmaple
   nnoremap gd :call g:cells.cells['DefinitionsAndUsages'].definitions()<cr>
   " goto usages of thing at cursor
   nnoremap gu :call g:cells.cells['DefinitionsAndUsages'].usages()<cr>
+  " find out about type below cursor
+  nnoremap gu :call g:cells.cells['DefinitionsAndUsages'].usages()<cr>
 
   " A trait just adds some methods to a dictionary - this way you could reload
   " or update the implementation on buf write later by rerunning the trait
@@ -303,6 +305,7 @@ column: atways from 1
 
 { 'type': 'definitions', <cursor_context> } -> [{'title', 'text': 'mulitiline text', 'kind': '', <location_keys>}]
 { 'type': 'usages',    <cursor_context> } -> [{'title', 'text': 'mulitiline text', 'kind': '', <location_keys>}]
+{ 'type': 'types',      <cursor_context> } -> [{'text': 'mulitiline text', 'kind': '', <location_keys>}]
 
 { 'type': 'error_markers_for_buf' } ->
 { 'type': 'error_markers_changed' } ->

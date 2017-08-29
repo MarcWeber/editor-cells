@@ -357,6 +357,25 @@ fun! cells#examples#TraitDefinitionsAndUsages(cell) abort
     endif
   endf
 
+  fun! a:cell.types()
+    call self.ask('__got_types', cells#util#CursorContext({'type': 'types', 'position': getpos('.')}))
+  endf
+
+  fun! a:cell.type_to_str(t)
+    return get(a:t, 'kind', '').' '. a:t.type
+  endf
+
+  fun! a:cell.__got_types(request)
+    let flattened = cells#util#Flatten1(a:request.results_good)
+    if len( flattened ) == 0
+      echom "No type"
+    else
+      for x in flattened
+        echom self.type_to_str(x)
+      endfor
+    endif
+  endf
+
   return a:cell
 
 endf
