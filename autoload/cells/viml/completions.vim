@@ -7,11 +7,8 @@ fun! cells#viml#completions#EventData(event)
   " expected event keys
   "  event['position'] = getpos('.')
   let event = a:event
-  let col_m1 = event.position[3]
-  let line   = getline('.')
-  let event  = event
   let event['type'] = 'completions'
-  let event['line_split_at_cursor'] = [line[0: event.position[2]-1], line[event.position[2]:]]
+  call cells#util#CursorContext(event)
   return event
 endf
 
@@ -33,6 +30,7 @@ fun! cells#viml#completions#TraitAutoTrigger(cell) abort
         \ ])
 
   let a:cell.limit = get(a:cell, 'limit', 10)
+  let a:cell.trigger_wait_ms = get(a:cell, 'trigger_wait_ms', 0)
 
   let a:cell.last_pos = [0,0,0,0]
 
@@ -47,21 +45,27 @@ fun! cells#viml#completions#TraitAutoTrigger(cell) abort
     let cursor_line = line[0: p[2]-1].'|'. line[p[2]:]
 
     let cell_ids = []
-    for d in self.by_filetype
-      if cursor_line =~ d.when_regex_matches_current_line 
-        let cell_ids += d.completing_cells
-      endif
-    endfor
-
-    let completing_cells_selecotr = {'ids' : cell_ids}
-    if len(cell_ids) == 0 | return |endif
+    let active = filter(copy(self.by_filetype), 'cursor_line =~ v:val.when_regex_matches_current_line')
+    let cell_ids = cells#util#Union(map(copy(active), 'v:val.completing_cells'))
+    if len(active) == 0 || len(cell_ids) == 0 | return | endif
+    let trigger_wait_ms = min(map(copy(active), 'get(v:val, "trigger_wait_ms", self.trigger_wait_ms)'))
 
     if index( cell_ids, 'all') >= 0
       let completing_cells_selector = 'all'
     else
       let completing_cells_selector = {'ids': cell_ids}
     end
-    call g:cells.emit({'type': 'complete', 'position': getpos('.'), 'limit': self.limit, 'match_types' : ['prefix', 'ycm_like', 'camel_case_like', 'ignore_case', 'last_upper'], 'completing_cells_selector' : completing_cells_selector})
+
+    if has_key(self, 'timer')
+      call timer_stop(self.timer)
+    endif
+    let self.completion_event = {'type': 'complete', 'position': getpos('.'), 'limit': self.limit, 'match_types' : ['prefix', 'ycm_like', 'camel_case_like', 'ignore_case', 'last_upper'], 'completing_cells_selector' : completing_cells_selector}
+    let self.timer = timer_start(self.trigger_wait_ms, function(self.start_completion, [], self), {'repeat': 1})
+  endf
+
+  fun! a:cell.start_completion(timer)
+    call timer_stop(a:timer)
+    call g:cells.emit(self.completion_event)
   endf
 
   augroup start
@@ -147,7 +151,7 @@ fun! cells#viml#completions#Trait(cell) abort
 
     if len(s:c.current_completions) == 0 | return | endif
 
-    set cot=menu,menuone,noinsert,noselect
+    set completeopt=menu,menuone,noinsert,noselect,preview
     " try to be graceful - overwrite omnifunc temporarely
     let self.old_omnifunc = &omnifunc
     set omnifunc=cells#viml#completions#CompletionFunction
@@ -170,7 +174,8 @@ fun! cells#viml#completions#Trait(cell) abort
     " endfor
     let nr = 1
     for lhs in self.goto_mappings
-      exec 'inoremap <buffer> '.lhs. ' 'repeat("<c-n>", nr)
+      " race condition?
+      exec 'silent! inoremap <buffer> '.lhs. ' 'repeat("<c-n>", nr)
       let nr += 1
     endfor
 
@@ -185,7 +190,7 @@ fun! cells#viml#completions#Trait(cell) abort
     " endfor
 
     for lhs in self.goto_mappings
-      exec 'iunmap <buffer> '.lhs
+      exec 'silent! iunmap <buffer> '.lhs
       " could be smarter, thus restorting completions
     endfor
     return ""

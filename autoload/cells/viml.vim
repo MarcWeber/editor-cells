@@ -184,7 +184,7 @@ fun! cells#viml#EditorCoreInterface() abort
       if !bufexists(bufnr) || !bufwinnr(bufnr) | continue | endif
       let b = {}
       let b['bufid'] = bufnr
-      let b['filename'] = expand(bufname(bufnr))
+      let b['filepath'] = cells#util#FilePathFromFilename(bufname(bufnr))
       let b['modify_state'] = 'todo'
       " TODO safe as bufvar whenever a change happens so that completion code
       " knows which files got updated
@@ -205,6 +205,7 @@ fun! cells#viml#EditorCoreInterface() abort
   endfun
 
   fun! c.__emit_buffer_event(event_data)
+    let a:event_data.filepath = cells#util#FilePathFromFilename(a:event_data.filename)
     let a:event_data.selector = {'ids': filter(keys(self.subscriptions), 'has_key(self.subscriptions[v:val], a:event_data.type)') }
     call g:cells.emit(a:event_data)
   endf

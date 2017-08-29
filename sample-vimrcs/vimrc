@@ -157,7 +157,7 @@ fun! SetupProjectFilesCell()
 endf
 
 fun! SetupPy3AsyncioTestCellsWithinVim() " [python3 within_vim]
-  " provide list of filenames for CompletionBasedOnFiles
+  " provide list of filepath for CompletionBasedOnFiles
   call SetupProjectFilesCell()
 
   let bridge_cell = cells#viml_py3_inside_vim#BridgeCell()
@@ -175,7 +175,7 @@ endf
 
 
 fun! SetupPy3TestCellsExternalProcess() " [python3 external_process]
-  " provide list of filenames for CompletionBasedOnFiles
+  " provide list of filepath for CompletionBasedOnFiles
   call SetupProjectFilesCell()
 
   let py3_cell_collection_cell = cells#viml#Cell({'traits': ['cells#vim8#CellCollectionExternalProcessTrait'], 'cmd': ['python', s:this_dir.'/../bin/py3cellcollection.py', '--debug'], 'pipe_dump_prefix' : 'py3' })

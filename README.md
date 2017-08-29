@@ -245,6 +245,18 @@ SPECIAL EVENTS / CONCEPTS / COMMON FEATURES
 Too much specification can hurt. So if you need keys/events add them and
 document the main features. Things will be fixed on the fly :-P.
 
+filename: maybe relative
+fileapth: more likely to be absolute (canonical filepath)
+
+<cursor_context>:
+    "context_lines": []
+    'line_split_at_cursor':
+    'position': # see getpos('.')
+    'limit': 500
+    'filename': ,
+    'filepath': ,
+    'bufid' :,
+
 " internal use:
 
 # cell core events which should be implemented by each cell collection
@@ -261,13 +273,11 @@ document the main features. Things will be fixed on the fly :-P.
 
 # introspection: todo
 
-{ 'type': 'set_properties', 'properties': {'enabled': v:false} }
+{ 'type': 'set_properties', 'properties': {'enabled': v:false} } # TODO will eventually be removed
 { 'type': 'log', 'lines': [], 'prio': TODO, 'sender': optional cell_id }
 { 'type': 'killed': sender: 'cell-id' } " if other cells might depend on a cell it can notify the other cells that it has been killed
 
-{ 'type': 'definition'} -> [{<cell_id>, 'text': 'mulitiline text', <location_keys>}]
-
-{ 'type': 'info_about_thing_below_cursor' } -> [{<cell_id>, 'text': 'mulitiline text', <location_keys>}]
+{ 'type': 'info_about_thing_at_cursor', <cursor_context> } -> [{<cell_id>, 'one_line_description', 'text': 'mulitiline text', <location_keys>}]
 
 { 'type': 'error_markers_for_buf' } ->
 { 'type': 'error_markers_changed' } ->
@@ -287,10 +297,7 @@ document the main features. Things will be fixed on the fly :-P.
   forach(..) loop than any PHP function which is unrelated
 
   {'type': 'completions'
-    "context_lines": []
-    'line_split_at_cursor':
-    'position': # see getpos('.')
-    'limit': 500
+    <cursor_context>
     'match_types': ['prefix', 'ignore_case', 'camel_case_like', 'last_upper']
       prefix: chars have to match at the beginning
       camel_case_like ccl -> camel_case_like
@@ -335,15 +342,14 @@ document the main features. Things will be fixed on the fly :-P.
   <location_keys>: file, line
   <action>: action which can be run
 
-
 # cell events filetype
 {' 'type': 'ftdetect' }
 => reply 'js' or such
   
 # cell events core editor events
-{ 'type': 'bufenter', 'bufnr': .., 'filename': .. } # au trigger: BufEnter
-{ 'type': 'bufnew', 'bufnr': .., 'filename': .. }   # au triggers: BufNewFile,BufRead
-{ 'type': 'filetype', 'bufnr': .., 'filename': .. } # ....
+{ 'type': 'bufenter', 'bufnr': .., 'filepath': .. } # au trigger: BufEnter
+{ 'type': 'bufnew', 'bufnr': .., 'filepath': .. }   # au triggers: BufNewFile,BufRead
+{ 'type': 'filetype', 'bufnr': .., 'filepath': .. } # ....
 
 # cell events mappings
 A cell just tells "I have mappings to be mapped" using the mappings_changed event.
@@ -410,12 +416,12 @@ Example implementation for Vim see cells#viml#EditorCoreInterface()
 
 features:
   ['editor_bufopen', 'editor_bufclose', 'editor_buf_written', 'editor_buf_cursor_pos']
-   {"type': 'editor_bufnew',     'bufid': <bufid>, 'filename'}
-   {"type': 'editor_bufread',     'bufid': <bufid>, 'filename'}
-   {"type': 'editor_bufclose',    'bufid': <bufid>, 'filename'}
-   {"type': 'editor_buf_written', 'bufid': <bufid>, 'filename'}
-   {"type': 'editor_buf_changed', 'bufid': <bufid>, 'filename'}
-   # {"type': 'buf_cursor_pos',     'bufid': <bufid>, 'filename'} TODO
+   {"type': 'editor_bufnew',     'bufid': <bufid>, 'filename': .., 'filepath':}
+   {"type': 'editor_bufread',     'bufid': <bufid>, 'filename': .., 'filepath':}
+   {"type': 'editor_bufclose',    'bufid': <bufid>, 'filename': .., 'filepath':}
+   {"type': 'editor_buf_written', 'bufid': <bufid>, 'filename': .., 'filepath':}
+   {"type': 'editor_buf_changed', 'bufid': <bufid>, 'filename': .., 'filepath':}
+   # {"type': 'buf_cursor_pos',     'bufid': <bufid>, 'filename': .., 'filepath':} TODO
 
 
 CELL FEATURES (to be extendended)
@@ -483,14 +489,8 @@ cells to be written
 
 cell features / interface (can be extended)
 
-  <location_keys>: file, line
+  <location_keys>: filepath, line
   <action>: action which can be run
-
-  * definition():
-    [{<cell_id>, 'text': 'mulitiline text', <location_keys>}]
-
-  * info_about_thing_below_cursor()
-    [{<cell_id>, 'text': 'mulitiline text', <location_keys>}]
 
   * error_markers
     purpose: linting / compilation result / language-server-protocol errors / ...
@@ -609,6 +609,12 @@ TODO
   * Finish Py asyncio backend
     - within Vim with timer/callback
     - as external process
+
+  * Implement closing whatever is open (tags brackets) ...
+    <div><div> should complete to
+      - </div>
+      - </div></div>
+    foo(( should completet to ) and ))
 
   * Integrate YCM, Eclim, tools
 

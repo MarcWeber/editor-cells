@@ -130,3 +130,15 @@ function! cells#util#Log(s)
   " let s = type(a:s) == type('') ? a:s : string(a:s) 
   " call writefile([s], '/tmp/log-vim', 'append')
 endf
+
+fun! cells#util#FilePathFromFilename(name)
+  return a:name
+endf
+
+fun! cells#util#CursorContext(d)
+  let col_m1 = a:d.position[3]
+  let line   = getline('.')
+  let a:d['filename'] = bufname('%')
+  let a:d['filepath'] = cells#util#FilePathFromFilename(a:d['filename'])
+  let a:d['line_split_at_cursor'] = [line[0: a:d.position[2]-1], line[a:d.position[2]:]]
+endf

@@ -5,7 +5,7 @@ fun! cells#examples#TraitTestMappings(cell) abort
     let mappings = [
           \ {'scope': 'global',                 'mode': 'normal', 'lhs': '<f2>', 'emit_event': {'type': 'do_echo', 'text': 'scope=g f2 was hit'}},
           \ {'scope': 'bufnr:4',                'mode': 'normal', 'lhs': '<f3>', 'emit_event': {'type': 'do_echo', 'text': 'scope=g f3 was hit'}},
-          \ {'scope': 'filename_regex:\.js$',   'mode': 'normal', 'lhs': '<f4>', 'emit_event': {'type': 'do_echo', 'text': 'scope=g f4 was hit'}},
+          \ {'scope': 'filepath_regex:\.js$',   'mode': 'normal', 'lhs': '<f4>', 'emit_event': {'type': 'do_echo', 'text': 'scope=g f4 was hit'}},
           \ ]
 
     call self.reply_now(a:event, mappings)
@@ -147,7 +147,7 @@ fun! cells#examples#TraitCompletionLocalVars(cell) abort
     let min = linenr - lines_max
     if min < 0 | let min = 1 | endif
 
-    let regexes_by_filename = [
+    let regexes_by_filepath = [
         \ ['\%(\.js\)$'       , 'var\s\(\S\+\)\s', self.__first_match],
         \ ['\%(\.js\|\.vim\)$', 'function\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__post_function_fun_args],
         \ ['\%(\.vim\)$', 'fun\S*!\?\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__post_function_vim],
@@ -163,7 +163,7 @@ fun! cells#examples#TraitCompletionLocalVars(cell) abort
           \ }
     let break_on_regex = get(break_on_regex_by_ext, ext, '')
 
-    let regexes_by_filename = filter(copy(regexes_by_filename), 'ext =~ v:val[0]')
+    let regexes_by_filepath = filter(copy(regexes_by_filepath), 'ext =~ v:val[0]')
     let words = {}
 
     while linenr >= min
@@ -171,7 +171,7 @@ fun! cells#examples#TraitCompletionLocalVars(cell) abort
       let certainity = 10.0 + ( (a:linenr - linenr) / lines_max)
       if (break_on_regex != '' && line =~  break_on_regex) || linenr < min | break | endif
 
-      for l in regexes_by_filename
+      for l in regexes_by_filepath
         let match = matchlist(line, l[1])
         if len(match) == 0 | continue | endif
         " call helper function to turn matches into words

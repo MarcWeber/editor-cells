@@ -6,7 +6,7 @@ fun! cells#viml#ftdetect#Trait(cell) abort
 
   fun! a:cell.l_bufenter(event)
     if getbufvar(a:event.bufnr, "&filetype") == ""
-      call self.ask( 'ftdetect_results', {'type': 'ftdetect', 'bufnr': a:event.event.bufnr, 'filename' : filename(a:event.bufnr)})
+      call self.ask( 'ftdetect_results', {'type': 'ftdetect', 'bufnr': a:event.event.bufnr, 'filepath' : filename(a:event.bufnr)})
     endif
   endf
 
