@@ -629,14 +629,14 @@ They may help you make decisions
 TODO
 ====
 
+  * For python and VimL create 'match_and_rate" function replacing the prefix,
+    camel_case_like stuff - thus allow the user to define a function
+
   * line based completion whole project
 
   * to n words completion if they occur very often nearby
 
   * Name completion in "Dear / Sehr geehrte .." in emails?
-
-  * for python and VimL create 'match_and_rate" function replacing the prefix,
-    camel_case_like stuff - thus allow the user to define a function
 
   * Implement closing whatever is open (tags brackets) ...
     <div><div> should complete to

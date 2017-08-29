@@ -129,6 +129,15 @@ fun! cells#examples#TraitCompletionLocalVars(cell) abort
       endfor
   endf
 
+  " python like x, b = [a,b]
+  fun! a:cell.__first_match_as_comma_list(words, match, w)
+      if a:match[1] != ''
+        for x in split(a:match[1], '\s*,\s*')
+          let a:words[x] = {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'LocalVars'}
+        endfor
+      endif
+  endf
+
   fun! a:cell.__first_match(words, match, w)
       if a:match[1] != ''
         let a:words[a:match[1]] = {'word': a:match[1], 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'LocalVars'}
@@ -149,10 +158,11 @@ fun! cells#examples#TraitCompletionLocalVars(cell) abort
 
     let regexes_by_filepath = [
         \ ['\%(\.js\)$'       , 'var\s\(\S\+\)\s', self.__first_match],
-        \ ['\%(\.js\|\.vim\)$', 'function\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__post_function_fun_args],
+        \ ['\.\%(js\|py\)$', '\%(function\|def\)\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__post_function_fun_args],
         \ ['\%(\.vim\)$', 'fun\S*!\?\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__post_function_vim],
         \ ['\%(\.vim\)$'      , 'let\s\(\S\+\)\s', self.__first_match],
-        \ ['\%(\.vim\)$'      , 'for\s\+\(\S\+\)', self.__first_match]
+        \ ['\%(\.vim\)$'      , 'for\s\+\(\S\+\)', self.__first_match],
+        \ ['\%(\.py\)$'      , '\(\w\%(\s*,\s*\w*\)\?\)\s*=', self.__first_match_as_comma_list]
         \ ]
 
     let ext = bufname('%:t')
