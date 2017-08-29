@@ -34,6 +34,9 @@ cells#examples#TraitCompletionFromCompletionFunction(cell)
 tags: [completion]
 description: add completions from Vim completion function
 
+cells#examples#TraitDefinitionsAndUsages
+description: allows to use l_definitions and l_usages within Vim
+
 Python implementations
 ----------------------
 py3/site-packages/cells/asyncio/examples.py:
@@ -41,3 +44,7 @@ py3/site-packages/cells/asyncio/examples.py:
 CompletionBasedOnFiles 
 tags: [completion]
 description: Python implementation completing words from project files or Vim buffer files
+
+JediCompletion:
+tags: [completion]
+description: Python completion, definiton, usages based on Jedi

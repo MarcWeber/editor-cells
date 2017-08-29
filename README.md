@@ -43,12 +43,18 @@ VIM exmaple
 
 
   " ask multiple completion strategies to provide their completions:
-  let traits = {
-        \ 'cells#examples#TraitTestCompletionThisBuffer': {},
-        \ 'cells#examples#TraitTestCompletionAllBuffers': {},
-        \ 'cells#examples#TraitCompletionLastInsertedTexts': {},
-        \ 'cells#examples#TraitCompletionLocalVars': {},
+  let viml_cells_to_be_created = {
+        \ 'TestCompletionThisBuffer': ['cells#examples#TraitTestCompletionThisBuffer',  {}],
+        \ 'TestCompletionAllBuffers': ['cells#examples#TraitTestCompletionAllBuffers',  {}],
+        \ 'CompletionLastInsertedTexts': ['cells#examples#TraitCompletionLastInsertedTexts',  {}],
+        \ 'CompletionLocalVars': ['cells#examples#TraitCompletionLocalVars',  {}],
+        \ 'DefinitionsAndUsages': ['cells#examples#TraitDefinitionsAndUsages',  {}],
         \ }
+
+  " goto definition of thing at cursor
+  nnoremap gd :call g:cells.cells['DefinitionsAndUsages'].definitions()<cr>
+  " goto usages of thing at cursor
+  nnoremap gu :call g:cells.cells['DefinitionsAndUsages'].usages()<cr>
 
   " A trait just adds some methods to a dictionary - this way you could reload
   " or update the implementation on buf write later by rerunning the trait
@@ -61,8 +67,8 @@ VIM exmaple
   " TraitCompletionLocalVars': {},        =>  When using var foo = 7; ist very likely that you'll be using foo, so rate those hits higher
 
   " For each completion create a cell having the trait
-  for [t,v] in items(traits)
-    let traits[t] = cells#viml#Cell({'traits': [t]})
+  for [id, v] in items(viml_cells_to_be_created)
+    call cells#viml#Cell({'id': id,  'traits': [t[0]]})
   endfor
 
   " Note for viml devs: A special trait cells#traits#Ask(cell) adds porcelain
@@ -248,6 +254,9 @@ document the main features. Things will be fixed on the fly :-P.
 filename: maybe relative
 fileapth: more likely to be absolute (canonical filepath)
 
+line:   always from 1
+column: atways from 1
+
 <cursor_context>:
     "context_lines": []
     'line_split_at_cursor':
@@ -256,6 +265,11 @@ fileapth: more likely to be absolute (canonical filepath)
     'filename': ,
     'filepath': ,
     'bufid' :,
+
+<location_keys>:
+    'filepath':
+    'line':
+    'col': (optional)
 
 " internal use:
 
@@ -277,7 +291,8 @@ fileapth: more likely to be absolute (canonical filepath)
 { 'type': 'log', 'lines': [], 'prio': TODO, 'sender': optional cell_id }
 { 'type': 'killed': sender: 'cell-id' } " if other cells might depend on a cell it can notify the other cells that it has been killed
 
-{ 'type': 'info_about_thing_at_cursor', <cursor_context> } -> [{<cell_id>, 'one_line_description', 'text': 'mulitiline text', <location_keys>}]
+{ 'type': 'definitions', <cursor_context> } -> [{'title', 'text': 'mulitiline text', 'kind': '', <location_keys>}]
+{ 'type': 'usages',    <cursor_context> } -> [{'title', 'text': 'mulitiline text', 'kind': '', <location_keys>}]
 
 { 'type': 'error_markers_for_buf' } ->
 { 'type': 'error_markers_changed' } ->
@@ -305,7 +320,7 @@ fileapth: more likely to be absolute (canonical filepath)
       ycm_like  -> youcompleteme like (match chars in order)
   }
 
-  reply => 
+  reply =>
   [
     { 'column': .., 'context': 'default', 'completions': [{'word', 'word_propability', 'description', 'continuation' : '..', 'w' => float}] }
   ]
@@ -605,6 +620,9 @@ TODO
   * to n words completion if they occur very often nearby
 
   * Name completion in "Dear / Sehr geehrte .." in emails?
+
+  * for python and VimL create 'match_and_rate" function replacing the prefix,
+    camel_case_like stuff - thus allow the user to define a function
 
   * Finish Py asyncio backend
     - within Vim with timer/callback

@@ -135,10 +135,21 @@ fun! cells#util#FilePathFromFilename(name)
   return a:name
 endf
 
-fun! cells#util#CursorContext(d)
-  let col_m1 = a:d.position[3]
+fun! cells#util#CursorContext(event)
+  let col_m1 = a:event.position[3]
   let line   = getline('.')
-  let a:d['filename'] = bufname('%')
-  let a:d['filepath'] = cells#util#FilePathFromFilename(a:d['filename'])
-  let a:d['line_split_at_cursor'] = [line[0: a:d.position[2]-1], line[a:d.position[2]:]]
+  let a:event['filename'] = bufname('%')
+  let a:event['filepath'] = cells#util#FilePathFromFilename(a:event['filename'])
+  let a:event['line_split_at_cursor'] = [line[0: a:event.position[2]-2], line[a:event.position[2]:]]
+  return a:event
+endf
+
+fun! cells#util#GotoLocationKeys(event)
+  if expand('%:p') != a:event.filepath
+    exec 'e '.fnameescape(a:event.filepath)
+  endif
+  if has_key(a:event, 'line') | exec a:event.line | endif
+  if has_key(a:event, 'column')
+    exec 'normal '.a:event.column.'|'
+  endif
 endf

@@ -25,12 +25,10 @@ fun! cells#viml#completions#TraitAutoTrigger(cell) abort
   " let cell = MyFastCompletion
   " call cells#viml#Cell({'traits': ['cells#viml#completions#TraitAutoTrigger'], 'by_filetype':  {'filetype_pattern' : '.*', 'when_regex_matches_current_line': '[a-z]|',  'completing_cells': [cell.id] }})
  
-  let a:cell.by_filetype = get(a:cell, 'by_filetype', [
-        \ {'filetype_pattern' : '.*', 'when_regex_matches_current_line': '\.|',  'completing_cells': ['all'] }
-        \ ])
+  let a:cell.by_filetype = get(a:cell, 'by_filetype', [])
 
   let a:cell.limit = get(a:cell, 'limit', 10)
-  let a:cell.trigger_wait_ms = get(a:cell, 'trigger_wait_ms', 0)
+  let a:cell.trigger_wait_ms = get(a:cell, 'trigger_wait_ms', 70)
 
   let a:cell.last_pos = [0,0,0,0]
 
@@ -42,10 +40,11 @@ fun! cells#viml#completions#TraitAutoTrigger(cell) abort
     let self.last_pos = p
 
     let line = getline('.')
-    let cursor_line = line[0: p[2]-1].'|'. line[p[2]:]
+    let cursor_line = line[0: p[2]-2].'|'. line[p[2]:]
 
     let cell_ids = []
-    let active = filter(copy(self.by_filetype), 'cursor_line =~ v:val.when_regex_matches_current_line')
+    let bname = bufname('%')
+    let active = filter(copy(self.by_filetype), 'cursor_line =~ v:val.when_regex_matches_current_line && bname =~ v:val.filetype_pattern')
     let cell_ids = cells#util#Union(map(copy(active), 'v:val.completing_cells'))
     if len(active) == 0 || len(cell_ids) == 0 | return | endif
     let trigger_wait_ms = min(map(copy(active), 'get(v:val, "trigger_wait_ms", self.trigger_wait_ms)'))
@@ -107,7 +106,7 @@ fun! cells#viml#completions#Trait(cell) abort
 
     for i in all
       let l = a:request.event.event.line_split_at_cursor[0]
-      let pref = l[column-1: i.column - len(l) -2 ]
+      let pref = l[column-1: i.column - len(l) - 3 ]
       if pref != ""
         for c in i.completions
           let c.abbrev = c.word

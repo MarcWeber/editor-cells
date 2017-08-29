@@ -111,27 +111,27 @@ fun! cells#examples#TraitCompletionLocalVars(cell) abort
 
   call cells#traits#Ask(a:cell)
 
-  fun! a:cell.__post_function_vim(words, match, certainity)
+  fun! a:cell.__post_function_vim(words, match, w)
     if a:match[1] != ''
-      let a:words[a:match[1]] = {'word': a:match[1], 'w': a:certainity -0.1, 'contexts': ['local_var_like'], 'kind': 'LocalVars'}
+      let a:words[a:match[1]] = {'word': a:match[1], 'w': a:w -0.1, 'contexts': ['local_var_like'], 'kind': 'LocalVars'}
     endif
     for x in split(a:match[2], ',\s*')
-      let a:words[x] = {'word': x, 'replacement': 'a:'.x, 'w': a:certainity, 'contexts': ['local_var_like'], 'kind': 'LocalVars'}
+      let a:words[x] = {'word': x, 'replacement': 'a:'.x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'LocalVars'}
     endfor
   endf
 
-  fun! a:cell.__post_function_fun_args(words, match, certainity)
+  fun! a:cell.__post_function_fun_args(words, match, w)
       if a:match[1] != ''
-        let a:words[a:match[1]] = {'word': a:match[1], 'w': a:certainity, 'contexts': ['local_var_like'], 'kind': 'LocalVars'}
+        let a:words[a:match[1]] = {'word': a:match[1], 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'LocalVars'}
       endif
       for x in split(a:match[2], ',\s*')
-        let a:words[x] = {'word': x, 'w': a:certainity, 'contexts': ['local_var_like'], 'kind': 'LocalVars' }
+        let a:words[x] = {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'LocalVars' }
       endfor
   endf
 
-  fun! a:cell.__first_match(words, match, certainity)
+  fun! a:cell.__first_match(words, match, w)
       if a:match[1] != ''
-        let a:words[a:match[1]] = {'word': a:match[1], 'w': a:certainity, 'contexts': ['local_var_like']}
+        let a:words[a:match[1]] = {'word': a:match[1], 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'LocalVars'}
       endif
   endf
 
@@ -155,27 +155,28 @@ fun! cells#examples#TraitCompletionLocalVars(cell) abort
         \ ['\%(\.vim\)$'      , 'for\s\+\(\S\+\)', self.__first_match]
         \ ]
 
-    let ext = expand('%:t')
+    let ext = bufname('%:t')
+    let bname = bufname('%')
 
     let break_on_regex_by_ext = {
-          \'js' : '^function',
-          \'vim' : '^fun'
+          \ 'js' : '^function',
+          \ 'vim' : '^fun'
           \ }
     let break_on_regex = get(break_on_regex_by_ext, ext, '')
 
-    let regexes_by_filepath = filter(copy(regexes_by_filepath), 'ext =~ v:val[0]')
+    let regexes_by_filepath = filter(copy(regexes_by_filepath), 'bname =~ v:val[0]')
     let words = {}
 
     while linenr >= min
       let line = getline(linenr)
-      let certainity = 10.0 + ( (a:linenr - linenr) / lines_max)
+      let w = 10.0 - ( abs(1.0 + a:linenr - linenr) / lines_max)
       if (break_on_regex != '' && line =~  break_on_regex) || linenr < min | break | endif
 
       for l in regexes_by_filepath
         let match = matchlist(line, l[1])
         if len(match) == 0 | continue | endif
         " call helper function to turn matches into words
-        call call(l[2], [words, match, certainity], self)
+        call call(l[2], [words, match, w], self)
       endfor
       let linenr -= 1
     endwhile
@@ -321,6 +322,39 @@ fun! cells#examples#TraitCompletionFromCompletionFunction(cell) abort
     endfor
     " let completions = cells#util#match_by_type(values(words), word_before_cursor, a:event.event.match_types)
     call self.reply_now(a:event, completions)
+  endf
+
+  return a:cell
+endf
+
+
+fun! cells#examples#TraitDefinitionsAndUsages(cell) abort
+  " Usage:
+  " " goto definition of thing at cursor
+  " nnoremap gd :call g:cells.cells['DefinitionsAndUsages'].definitions()<cr>
+  " " goto usages of thing at cursor
+  " nnoremap gu :call g:cells.cells['DefinitionsAndUsages'].usages()<cr>
+
+  call cells#traits#Ask(a:cell)
+
+  fun! a:cell.definitions()
+    call self.ask('goto_or_quickfix', cells#util#CursorContext({'type': 'definitions', 'position': getpos('.')}))
+  endf
+
+  fun! a:cell.usages()
+    call self.ask('goto_or_quickfix', cells#util#CursorContext({'type': 'usages', 'position': getpos('.')}))
+  endf
+
+  fun! a:cell.goto_or_quickfix(request)
+    let flattened = cells#util#Flatten1(a:request.results_good)
+    if len( flattened ) == 0
+      echom "No hits"
+    elseif len( flattened ) == 1
+      call cells#util#GotoLocationKeys(flattened[0])
+    else
+      call setqflist(map(copy(flattened), '{"filename": v:val.filepath, "col": get(v:val,"column",1), "lnum": v:val.line, "text": get(v:val, "title", "")}'))
+      cope
+    endif
   endf
 
   return a:cell

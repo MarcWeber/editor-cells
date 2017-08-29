@@ -117,9 +117,7 @@ fun! cells#vim_dev#ErrorToQuickFix(lines) abort
     " python trace lines
     let i = 0
     for i in range(1, len(rest_lines)-1)
-      echom rest_lines[i]
       let matches = matchlist(rest_lines[i], ' File "\([^"]*\)", line \([^,]*\), in \(.*\)')
-      echom string(matches)
       if len(matches) > 1
         call add(py_qflines, {'filename' : matches[1] , 'lnum': matches[2], 'text': matches[3]})
       elseif rest_lines[i] =~ '^\S'
