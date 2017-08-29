@@ -91,17 +91,27 @@ VIM exmaple
   " The | means cursor location. Thus if you've typed one lower case char
   " completion will kick in
 
-  " Retry with all completion providers once 3 chars have been typed
-  call add(by_filetype, {
-    \ 'filetype_pattern' : '.*',
-    \ 'when_regex_matches_current_line': '[a-z][a-z][a-z]|',
-    \ 'completing_cells': ['all']
-    \ })
-  call cells#viml#Cell({'traits': ['cells#viml#completions#TraitAutoTrigger'], 'by_filetype':  by_filetype})
+  " trigger completions automatically
+  call cells#viml#Cell({'traits': ['cells#viml#completions#TraitAutoTrigger'], 'by_filetype':  [], 'id': 'CompletionAutoTrigger', 'trigger_wait_ms': 75})
 
-  " As alternative map <s-space> to kick of completion provide by cell ids id1, id2
-  " You can get the cell id by cell.id like this: traits['cells#examples#TraitTestCompletionThisBuffer'].id
-  " Avoid completing_cells_selector to target all cells providing completions
+  " use fast buffer based and local var based completions always after one char has been typed
+  call add(g:cells.cells['CompletionAutoTrigger'].by_filetype, {
+    \ 'filetype_pattern' : '.*$',
+    \ 'when_regex_matches_current_line': '\<\w|',
+    \ 'completing_cells': ['CompletionLocalVars', 'CompletionThisBuffer']
+    \ })
+
+  " Use Python's jedi completion only after . and after one char has been typed
+  call add(g:cells.cells['CompletionAutoTrigger'].by_filetype, {
+    \ 'filetype_pattern' : '.py$',
+    \ 'when_regex_matches_current_line': '\.\w\+|',
+    \ 'completing_cells': ['JediCompletion']
+    \ })
+
+
+  " As alternative map <s-space> to kick of completion provide by cell ids id1,
+  " id2, or avoid completing_cells_selector to use all completion providers
+  " a completion id depends on your cells setup. See CompletionLastInsertedTexts as example.
   inoremap <s-space> <c-r>=call g:cells.emit({'type': 'complete', 'position': getpos('.'), 'limit': 20, 
     \ 'match_types' : ['prefix', 'ycm_like', 'camel_case_like', 'ignore_case', 'last_upper'],
     \ 'completing_cells_selector' : {'cell_ids': [id1, id2]}<cr>
