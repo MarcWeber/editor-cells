@@ -129,8 +129,8 @@ VIM exmaple
   let eclim_completions['eclim_js']   = ['\.js$', 'eclim#javascript#complete#CodeComplete']
   let eclim_completions['eclim_css']  = ['\.css$', 'eclim#css#complete#CodeComplete']
   let eclim_completions['eclim_php']  = ['\.php$', 'eclim#php#complete#CodeComplete'] " does not take care of Eclims goto PHP definiton yet
-  for [k,v] in eclim_completions
-    call cells#viml#Cell({'traits': ['cells#examples#TraitCompletionFromCompletionFunction'], 'id': k, 'completion-functions': [{'filetype_regex': v[0], 'completion-function': v[1]}]})
+  for [k,v] in items(eclim_completions)
+    call cells#viml#Cell({'traits': ['cells#examples#TraitCompletionFromCompletionFunction'], 'id': k, 'completion-functions': [{'filepath_regex': v[0], 'completion-function': v[1], 'first_char_apply_match_score': 1, 'spaces_after_cursor': 1, 'use_cache': 1}]})
   endfor
 
 ```
@@ -338,7 +338,7 @@ column: atways from 1
 
   {'type': 'completions'
     <cursor_context>
-    'match_types': ['prefix', 'ignore_case', 'camel_case_like', 'last_upper']
+    'match_types': ['prefix', 'ignore_case', 'camel_case_like', 'last_upper'] # match_types is deprecated and will be removed
       prefix: chars have to match at the beginning
       camel_case_like ccl -> camel_case_like
       last_upper ccE -> camel_case_lik*e*
@@ -617,7 +617,7 @@ So given a line foo.add[' its fine if one completions completes from the last
 Sample implementations:
 
   # use Vim's omnifunc
-  call cells#viml#Cell({'traits': ['cells#examples#TraitCompletionFromCompletionFunction'], 'complete-functions': [{'complete-function': 'pythoncomplete#Complete', 'filetype_regex':'.'}])
+  call cells#viml#Cell({'traits': ['cells#examples#TraitCompletionFromCompletionFunction'], 'complete-functions': [{'complete-function': 'pythoncomplete#Complete', 'filetype_regex':'.', 'first_char_apply_match_score': 1}])
 
   # words from buffer
   call cells#examples#TraitTestCompletion({})
@@ -640,9 +640,6 @@ They may help you make decisions
 TODO
 ====
 
-  * For python and VimL create 'match_and_rate" function replacing the prefix,
-    camel_case_like stuff - thus allow the user to define a function
-
   * line based completion whole project
 
   * to n words completion if they occur very often nearby
@@ -654,6 +651,9 @@ TODO
       - </div>
       - </div></div>
     foo(( should completet to ) and ))
+
+  * If local var completion and python completion both have options thing about
+    which one to show or both or how to set priorities
 
   * Integrate YCM, Eclim, tools
 

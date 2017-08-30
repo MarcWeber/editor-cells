@@ -4,6 +4,8 @@
 if !exists('g:cells') | let g:cells = {} | endif |let s:c = g:cells
 let s:c.cells = get(s:c, 'cells', {})
 
+let s:c.match_store_fun = function('cells#match#MatchScoreFunction', [])
+
 fun! cells#ProvideAPI()
 
   if !has_key(s:c, 'emit')

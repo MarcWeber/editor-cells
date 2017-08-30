@@ -1,3 +1,5 @@
+if !exists('g:cells') | let g:cells = {} | endif |let s:c = g:cells
+
 " usage: cells#util#ByKeysDefault({}, ['a', 'b'], []) yields {'a': {'b': []}}
 fun! cells#util#ByKeysDefault(d, keys, default) abort
   let d = a:d
@@ -26,6 +28,15 @@ fun! cells#util#Flatten1(lists) abort
   return r
 endf
 
+fun! cells#util#match_by_type2(list, word) abort
+  let list = a:list
+  let Fun = s:c.match_store_fun(a:word)
+  for c in list
+    let c.w = get(c, 'w', 0.9) * call(Fun, [c.word])
+  endfor
+  call filter(list, 'v:val.w > 0')
+  return a:list
+endf
 
 " fun! cells#util#match_by_type_Test()
 "   let list = []
@@ -41,6 +52,7 @@ endf
 " call cells#util#match_by_type_Test()
 
 fun! cells#util#match_by_type(list, word, match_types) abort
+  " deprecated
   let regexes = []
   let filtered = []
 
@@ -82,20 +94,34 @@ endf
 fun! cells#util#CamelCaseLikeMatching(expr) abort
   let result = ''
   if len(a:expr) > 5 " vim can't cope with to many \( ? and propably we no longer want this anyway
-    return 'noMatchDoh'
+    return a:expr
   endif
   for index in range(0,len(a:expr))
     let c = a:expr[index]
     if c =~ '\u'
-      let result .= c.'\u*\l*_\='
+      let result .= c.'\u*\l*[_-]\?'
     elseif c =~ '\l'
-      let result .= '\c'.c.'\l*\%(\l\)\@!_\='
+      let result .= '\c'.c.'\l*[-_]\?'
     else
       let result .= c
     endif
   endfor
   return result
 endf
+
+fun! cells#util#TestCamelCaseLikeMatching()
+  echom 'should all be 1'
+  echom 'ab' =~ '^'.cells#util#CamelCaseLikeMatching('ab')
+  echom 'a_b' =~ '^'.cells#util#CamelCaseLikeMatching('ab')
+  echom 'az_boo' =~ '^'.cells#util#CamelCaseLikeMatching('ab')
+  echom 'az-boo' =~ '^'.cells#util#CamelCaseLikeMatching('ab')
+  echom 'Az_Boo' =~ '^'.cells#util#CamelCaseLikeMatching('AB')
+  echom 'Az-Boo' =~ '^'.cells#util#CamelCaseLikeMatching('AB')
+  echom 'AzBoo' =~ '^'.cells#util#CamelCaseLikeMatching('AB')
+  echom 'AZ-Boo' =~ '^'.cells#util#CamelCaseLikeMatching('AB')
+  echom 'test done'
+endf
+" call cells#util#TestCamelCaseLikeMatching()
 
 fun! cells#util#ToVim(x) abort
   let g:to_vim = a:x
@@ -152,4 +178,28 @@ fun! cells#util#GotoLocationKeys(event)
   if has_key(a:event, 'column')
     exec 'normal '.a:event.column.'|'
   endif
+endf
+
+fun! cells#util#MatchScoreFunction(word)
+  let c = {}
+  let c.word = word
+  let c.regex_camel_case_like = '^'.cells#util#CamelCaseLikeMatching(a:word)
+  let c.regex_prefix = '^'. c.word
+  let c.regex_ignore_case = '^\v'. c.word
+
+  fun! c.score(s)
+
+    if a:s =~ self.regex_camel_case_like
+      return 2
+
+    if a:s =~ self.regex_prefix
+      return 1.5
+
+    if a:s =~ self.regex_ignore_case
+      return 0.5
+
+    return 0
+  endf
+
+  return function(c.score, [], c)
 endf

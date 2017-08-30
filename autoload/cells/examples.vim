@@ -1,4 +1,5 @@
 " some exapmle implementation.
+if !exists('g:cells') | let g:cells = {} | endif |let s:c = g:cells
 
 fun! cells#examples#TraitTestMappings(cell) abort
   fun! a:cell.l_mappings(event)
@@ -91,7 +92,7 @@ fun! cells#examples#TraitCompletionLastInsertedTexts(cell) abort " {{{
       let certainity = certainity * 0.7
     endfor
 
-    let completions = cells#util#match_by_type(values(words), word_before_cursor, a:event.event.match_types)
+    let completions = cells#util#match_by_type2(values(words), word_before_cursor)
     call self.reply_now(a:event, [{
           \ 'column': a:event.event.position[2] - len(word_before_cursor),
           \ 'completions' : completions
@@ -199,7 +200,7 @@ fun! cells#examples#TraitCompletionLocalVars(cell) abort
 
     let words = self.local_vars(a:event.event.position[1])
 
-    let completions = cells#util#match_by_type(values(words), word_before_cursor, a:event.event.match_types)
+    let completions = cells#util#match_by_type2(values(words), word_before_cursor)
     for c in completions
       if has_key(c, 'replacement') | let c.word = c.replacement | call remove(c, 'replacement') | endif
     endfor
@@ -252,13 +253,11 @@ fun! cells#examples#TraitTestCompletionThisBuffer(cell) abort
           let certainity = sqrt(certainity)
         endif
       endif
-      let words[w] = {'word': w, 'w': certainity}
+      let words[w] = {'word': w, 'w': certainity, 'kind': 'ThisBuffer'}
       let linenr += 1
     endfor
 
-
-
-    let completions = cells#util#match_by_type(values(words), word_before_cursor, a:event.event.match_types)
+    let completions = cells#util#match_by_type2(values(words), word_before_cursor)
     call self.reply_now(a:event, [{
           \ 'column': a:event.event.position[2] - len(word_before_cursor),
           \ 'completions' : completions
@@ -272,8 +271,8 @@ endf
 fun! cells#examples#TraitTestCompletionAllBuffers(cell) abort
 
   call cells#traits#Ask(a:cell)
-
   call a:cell.add_trait('cells#examples#TraitTestCompletionHelper')
+  let  a:cell.omit_current_buffer = get(a:cell, 'omit_current_buffer', 1)
 
   let a:cell.buf_ids_entered_recently = []
 
@@ -284,22 +283,25 @@ fun! cells#examples#TraitTestCompletionAllBuffers(cell) abort
   fun! a:cell.l_completions(event)
 
     let word_before_cursor = matchstr(a:event.event.line_split_at_cursor[0], '\zs\S*$')
-
     let words = {}
     let linenr = 1
 
+    let this_buf = bufnr('%')
+
     for bufnr in range(1, bufnr('$'))
+      if bufnr == this_buf && self.omit_current_buffer | continue | endif
+      echom 'this buffer '.bufnr
       let recently_visited_care = 20
       let add  = (recently_visited_care - index(self.buf_ids_entered_recently[0:recently_visited_care], bufnr)) / recently_visited_care
       let contexts = [ 'rec_buf'.add ]
       for w in self.__line_to_items(join(getbufline(bufnr, 1, '$')," "))
         if (w == word_before_cursor) | continue | endif
-        let words[w] = {'word': w, 'w': 0.5, 'contexts': contexts}
+        let words[w] = {'word': w, 'w': 0.5, 'contexts': contexts, 'kind': 'AllBuffers'}
         let linenr += 1
       endfor
     endfor
 
-    let completions = cells#util#match_by_type(values(words), word_before_cursor, a:event.event.match_types)
+    let completions = cells#util#match_by_type2(values(words), word_before_cursor)
     call self.reply_now(a:event, [{
           \ 'column': a:event.event.position[2] - len(word_before_cursor),
           \ 'completions' : completions
@@ -312,30 +314,111 @@ endf
 
 " }}}
 
-fun! cells#examples#CompletionsFromCompletionFunction(event, f)
+let s:compl_cache = {}
+
+fun! cells#examples#CompletionsFromCompletionFunction(completions, event, d)
   let findstart = 1
-  let r1 = call(a:f, [1, ''])
-  if r1 < 0 | continue | endif " no completion or cancel silently
-  let base = a:event.event.line_split_at_cursor[0][r1:]
-  let r2 = call(a:f, [0, base] )
-  return { 'column': r1 +1, 'completions' : r2 }
+  let pos = getpos('.')
+  let pos_new = copy(pos)
+  try
+
+    if get(a:d, 'first_char_apply_match_score', 1)
+      " Make sure completion function only sees one character, for instance
+      " after instance.abc run completion on instance.a
+      " then use use supplied s:c.match_store_fun to match functions and set
+      " weight
+      let cursor_context = cells#util#CursorContext({'position': pos})
+      let word_before_cursor = matchstr(cursor_context.line_split_at_cursor[0], '\zs\S*$')
+      let  pos_new[2] = (pos[2] - max([0, len(word_before_cursor) -1]))
+      call setpos('.', pos_new)
+    endif
+    let cursor_context_new = cells#util#CursorContext({'position': pos_new})
+
+    if get(a:d, 'spaces_after_cursor', 0)
+      let line = getline('.')
+      let line_new = line[0:pos_new[2]-2]
+      call setline('.', line_new)
+    endif
+
+
+    let r1 = call(a:d['completion-function'], [1, ''])
+    if r1 < 0 | return | endif " no completion or cancel silently
+
+    let base = cursor_context_new.line_split_at_cursor[0][r1:]
+
+    let fun_key = string(a:d)
+    let sub_key = string(pos_new).base
+
+    if get(a:d, 'use_cache', 1) && has_key(s:compl_cache, fun_key) && s:compl_cache[fun_key][0] == sub_key
+      let r2 = s:compl_cache[fun_key][1]
+    else
+      let r2 = call(a:d['completion-function'], [0, base] )
+      let s:compl_cache[fun_key] = [sub_key, r2]
+    endif
+
+    if get(a:d, 'first_char_apply_match_score', 1)
+      " now apply user supplied match function
+      let r2 = cells#util#match_by_type2(r2, word_before_cursor)
+    endif
+
+    call add(a:completions, { 'column': r1 +1, 'completions' : r2 })
+
+  finally
+
+    if get(a:d, 'spaces_after_cursor', 0) && exists('line')
+      call setline('.', line)
+    endif
+
+    call setpos('.', pos)
+
+  endtry
+
 endf
 
 fun! cells#examples#TraitCompletionFromCompletionFunction(cell) abort
   " Usage:
-  " call cells#viml#Cell({'traits': ['cells#examples#TraitCompletionFromCompletionFunction'], 'complete-functions': [{'filepath_regex':'\.py$', 'complete-function': 'pythoncomplete#Complete'}])
+  " call cells#viml#Cell({'traits': ['cells#examples#TraitCompletionFromCompletionFunction'], 'completion-functions': [{'filepath_regex':'\.py$', 'completion-function': 'pythoncomplete#Complete', 'first_char_apply_match_score': 1}])
 
-  let a:cell['complete-functions'] = get(a:cell, 'complete-functions', [])
+  let a:cell['completion-functions'] = get(a:cell, 'completion-functions', [])
 
   fun! a:cell.l_completions(event)
     let bname = bufname('%')
-    let active = filter(copy(self['complete-functions']), 'bname =~ v:val["filepath_regex"]')
+    let active = filter(copy(self['completion-functions']), 'bname =~ v:val["filepath_regex"]')
     let completions = []
     for d in active
-      call add(completions, cells#examples#CompletionsFromCompletionFunction(a:event, d['complete-function']))
+      call cells#examples#CompletionsFromCompletionFunction(completions, a:event, d)
     endfor
-    " let completions = cells#util#match_by_type(values(words), word_before_cursor, a:event.event.match_types)
     call self.reply_now(a:event, completions)
+  endf
+
+  return a:cell
+endf
+
+fun! cells#examples#PathCompletion(cell) abort
+  " vim's file/directory completion is nice, but suffers from
+  " PATH=/ro<c-x><c-f> issues not understanding that = is highly unlikely to
+  " be part of the path
+
+  let a:cell['completion-functions'] = get(a:cell, 'completion-functions', [])
+
+  fun! a:cell.l_completions(event)
+    let file_char = '\%(\w\|[-_.]\)'
+    let path_start = '\%(\w:[/\\]\|\/\)\?'
+    let paths = '\%('.file_char.'\+[\\/]\)*'
+    let file = file_char.'*'
+    let list = matchlist(a:event.event.line_split_at_cursor[0], '\('.path_start.paths.'\)\('.file.'\)$' )
+
+    if len(list) < 2 || (len(list[1].list[2]) == 0 ) | return | endif
+    let dir = list[1]
+    let file = list[2]
+    if isdirectory(dir)
+      let words = map(split(glob(dir.'/*'),"\n"), '{"w": 1, "word": v:val[len(dir)+1:], "kind":"PathCompletion"}')
+      let completions = cells#util#match_by_type2(words, file)
+      call self.reply_now(a:event, [{
+            \ 'column': a:event.event.position[2] - len(file),
+            \ 'completions' : completions
+      \ }])
+    endif
   endf
 
   return a:cell

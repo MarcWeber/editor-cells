@@ -37,6 +37,9 @@ description: add completions from Vim completion function. Eg wrapper for Eclim 
 cells#examples#TraitDefinitionsAndUsages
 description: allows to use l_definitions and l_usages within Vim
 
+cells#examples#PathCompletion
+description: smart path completion completing after PATH=... based on Vim's glob function
+
 Python implementations
 ----------------------
 py3/site-packages/cells/asyncio/examples.py:

@@ -44,7 +44,7 @@ fun! cells#viml#completions#TraitAutoTrigger(cell) abort
 
     let cell_ids = []
     let bname = bufname('%')
-    let active = filter(copy(self.by_filetype), 'cursor_line =~ v:val.when_regex_matches_current_line && bname =~ v:val.filetype_pattern')
+    let active = filter(copy(self.by_filetype), 'cursor_line =~ v:val.when_regex_matches_current_line && bname =~ v:val.filepath_regex')
     let cell_ids = cells#util#Union(map(copy(active), 'v:val.completing_cells'))
     if len(active) == 0 || len(cell_ids) == 0 | return | endif
     let trigger_wait_ms = min(map(copy(active), 'get(v:val, "trigger_wait_ms", self.trigger_wait_ms)'))

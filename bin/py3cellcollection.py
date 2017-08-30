@@ -10,7 +10,7 @@ import sys
 sys.path.append(os.path.dirname(__file__)+"/../py3/site-packages/")
 
 import cells.asyncio as cells
-from  cells.asyncio  import debug_str
+from  cells.debug import debug_str
 import json
 import copy
 from asyncio.streams import StreamWriter, FlowControlMixin
