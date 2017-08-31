@@ -117,8 +117,8 @@ VIM exmaple
   " a completion id depends on your cells setup. See CompletionLastInsertedTexts as example.
   inoremap <s-space> <c-r>=call g:cells.emit({'type': 'complete', 'position': getpos('.'), 'limit': 20, 
     \ 'match_types' : ['prefix', 'ycm_like', 'camel_case_like', 'ignore_case', 'last_upper'],
-    \ 'completing_cells_selector' : {'cell_ids': [id1, id2]}<cr>
-    \ })
+    \ 'completing_cells_selector' : {'ids': [id1, id2]}
+    \ })<cr>
 
   " See sample-vimrcs/* about how to integrate python cells
 
