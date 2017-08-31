@@ -164,19 +164,42 @@ endf
 fun! cells#util#CursorContext(event)
   let col_m1 = a:event.position[3]
   let line   = getline('.')
+  let a:event['bufid'] = bufnr('%')
   let a:event['filename'] = bufname('%')
+  let a:event['cword'] = expand('<cword>')
   let a:event['filepath'] = cells#util#FilePathFromFilename(a:event['filename'])
   let a:event['line_split_at_cursor'] = [line[0: a:event.position[2]-2], line[a:event.position[2]:]]
+  let a:event['offset'] = line2byte(line('.')) + col('.') - 1
   return a:event
 endf
 
-fun! cells#util#GotoLocationKeys(event)
+fun! cells#util#LocationToQFEntry(source, target)
+  let r = a:target
+  let r['filename'] = a:source.filepath
+  if has_key(a:source, 'line')
+    let r['lnum'] = a:source.line
+    if has_key(a:source, 'column')
+      let r['col'] = a:source.column
+    endif
+  elseif has_key(a:source, 'offset')
+    call cells#util#OffsetToLineCol(a:source.filepath, a:source.offset, r)
+  else
+    throw "no line given in ".string(a:source)
+  endif
+  return r
+endf
+
+fun! cells#util#GotoLocation(event)
   if expand('%:p') != a:event.filepath
     exec 'e '.fnameescape(a:event.filepath)
   endif
-  if has_key(a:event, 'line') | exec a:event.line | endif
-  if has_key(a:event, 'column')
-    exec 'normal '.a:event.column.'|'
+  if has_key(a:event, 'offset')
+    exec 'goto '.a:event.offset
+  else
+    if has_key(a:event, 'line') | exec a:event.line | endif
+    if has_key(a:event, 'column')
+      exec 'normal '.a:event.column.'|'
+    endif
   endif
 endf
 
@@ -202,4 +225,19 @@ fun! cells#util#MatchScoreFunction(word)
   endf
 
   return function(c.score, [], c)
+endf
+
+fun! cells#util#OffsetToLineCol(filepath, offset, target)
+  let lines = readfile(a:filepath, "b")
+  let offset_left = a:offset
+  for lnum in range(0, len(lines)-1)
+    let l = lines[lnum]
+    let offset_left_next = offset_left - len(l)-1
+    if offset_left_next < 0
+      let a:target['lnum'] = lnum + 1
+      let a:target['col'] = offset_left
+      break
+    endif
+    let offset_left = offset_left_next
+  endfor
 endf

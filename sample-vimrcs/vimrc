@@ -70,13 +70,13 @@ fun! SetupVimTestCells() " [VIML ONLY]
         \ 'TestCompletionThisBuffer' : 'cells#examples#TraitTestCompletionThisBuffer',
         \ 'TestCompletionAllBuffers' : 'cells#examples#TraitTestCompletionAllBuffers',
         \ 'CompletionLastInsertedTexts' : 'cells#examples#TraitCompletionLastInsertedTexts',
-        \ 'CompletionLocalVars' : 'cells#examples#TraitCompletionLocalVars',
+        \ 'CompletionContext' : 'cells#examples#TraitCompletionContext',
         \ }
   for [k, t] in items(traits)
     call cells#viml#Cell({'traits': [t], 'id': k})
   endfor
 
-  call cells#viml#Cell({'traits': ['cells#examples#TraitCompletionFromCompletionFunction'], 'complete-functions': [{'complete-function':'CompleteMonths', 'filetype_regex': '.*'}] })
+  call cells#viml#Cell({'traits': ['cells#examples#TraitCompletionFromCompletionFunction'], 'complete-functions': [{'complete-function': 'CompleteMonths', 'filepath_regex': '.*'}] })
 
   sp | enew
   call append('$', [
@@ -94,7 +94,7 @@ fun! SetupVimTestCellsCompletionAutoTrigger() " [VIML ONLY]
         \ 'cells#examples#TraitTestCompletionThisBuffer',
         \ 'cells#examples#TraitTestCompletionAllBuffers',
         \ 'cells#examples#TraitCompletionLastInsertedTexts',
-        \ 'cells#examples#TraitCompletionLocalVars',
+        \ 'cells#examples#TraitCompletionContext',
         \ ]
   for t in traits
     call cells#viml#Cell({'traits': [t]})
@@ -102,7 +102,7 @@ fun! SetupVimTestCellsCompletionAutoTrigger() " [VIML ONLY]
 
   let by_filetype = []
   call add(by_filetype, {
-    \ 'filetype_pattern' : '.*',
+    \ 'filepath_regex' : '.*',
     \ 'when_regex_matches_current_line': '\w|',
     \ 'completing_cells': ['all']
     \ })
@@ -166,7 +166,7 @@ fun! SetupPy3AsyncioTestCellsWithinVim() " [python3 within_vim]
 
   let by_filetype = []
   call add(by_filetype, {
-    \ 'filetype_pattern' : '.*',
+    \ 'filepath_regex' : '.*',
     \ 'when_regex_matches_current_line': '\w|',
     \ 'completing_cells': ['all']
     \ })
@@ -188,7 +188,7 @@ fun! SetupPy3TestCellsExternalProcess() " [python3 external_process]
 
   let by_filetype = []
   call add(by_filetype, {
-    \ 'filetype_pattern' : '.*',
+    \ 'filepath_regex' : '.*',
     \ 'when_regex_matches_current_line': '\w|',
     \ 'completing_cells': ['all']
     \ })

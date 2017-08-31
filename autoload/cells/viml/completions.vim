@@ -59,11 +59,14 @@ fun! cells#viml#completions#TraitAutoTrigger(cell) abort
       call timer_stop(self.timer)
     endif
     let self.completion_event = {'type': 'complete', 'position': getpos('.'), 'limit': self.limit, 'match_types' : ['prefix', 'ycm_like', 'camel_case_like', 'ignore_case', 'last_upper'], 'completing_cells_selector' : completing_cells_selector}
-    let self.timer = timer_start(self.trigger_wait_ms, function(self.start_completion, [], self), {'repeat': 1})
+    if trigger_wait_ms > 0
+      let self.timer = timer_start(trigger_wait_ms, function(self.start_completion, [], self), {'repeat': 1})
+    else
+      call g:cells.emit(self.completion_event)
+    endif
   endf
 
   fun! a:cell.start_completion(timer)
-    call timer_stop(a:timer)
     call g:cells.emit(self.completion_event)
   endf
 
@@ -74,7 +77,10 @@ fun! cells#viml#completions#TraitAutoTrigger(cell) abort
 endf
 
 fun! cells#viml#completions#Trait(cell) abort
-  let a:cell.goto_mappings = get(a:cell, 'goto_mappings', map(range(1,9)+["0"], "v:val"))
+  " VimL user interface for completion events
+  " Python might be faster if there are many matches
+
+  let a:cell.goto_mappings = get(a:cell, 'goto_mappings', map(range(1,9)+["0"], "'<m-'.v:val.'>'"))
   let s:c.completion_cell = a:cell
 
   let a:cell.complete_ends = get(a:cell, 'complete_ends', ['<space>', '<cr>'])

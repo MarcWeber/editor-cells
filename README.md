@@ -27,7 +27,7 @@ The code triggering the completion is writen in VimL.
 
 ![alt text](https://github.com/MarcWeber/editor-cells/raw/master/images/py-sample-completion-external-process-with-auto-completion.gif "Demo Gif Animation 1")
 
-You can write your own completions easily such as cells#examples#TraitCompletionLocalVars.
+You can write your own completions easily such as cells#examples#TraitCompletionContext.
 This sample code finds function arguments and local vars triggering completions for them.
 
 VIM exmaple
@@ -39,6 +39,7 @@ VIM exmaple
   call cells#viml#CellCollection()
   " Editor core events implementation
   call cells#viml#EditorCoreInterface()
+  call cells#viml#EditorVimInterface()
   call cells#ProvideAPI()
 
 
@@ -47,7 +48,7 @@ VIM exmaple
         \ 'TestCompletionThisBuffer': ['cells#examples#TraitTestCompletionThisBuffer',  {}],
         \ 'TestCompletionAllBuffers': ['cells#examples#TraitTestCompletionAllBuffers',  {}],
         \ 'CompletionLastInsertedTexts': ['cells#examples#TraitCompletionLastInsertedTexts',  {}],
-        \ 'CompletionLocalVars': ['cells#examples#TraitCompletionLocalVars',  {}],
+        \ 'CompletionLocalVars': ['cells#examples#TraitCompletionContext',  {}],
         \ 'DefinitionsAndUsages': ['cells#examples#TraitDefinitionsAndUsages',  {}],
         \ }
 
@@ -66,7 +67,7 @@ VIM exmaple
   " TraitTestCompletionThisBuffer => complete words of current buffer
   " TraitTestCompletionAllBuffers => complete words in all opened buffers
   " TraitCompletionLastInsertedTexts': {} => complete words from last texts you typed in this session
-  " TraitCompletionLocalVars': {},        =>  When using var foo = 7; ist very likely that you'll be using foo, so rate those hits higher
+  " TraitCompletionContext': {},        =>  When using var foo = 7; ist very likely that you'll be using foo, so rate those hits higher
 
   " For each completion create a cell having the trait
   for [id, v] in items(viml_cells_to_be_created)
@@ -87,7 +88,7 @@ VIM exmaple
   call add(by_filetype, {
     \ 'filetype_pattern' : '.*',
     \ 'when_regex_matches_current_line': '[a-z]|',
-    \ 'completing_cells': [traits['cells#examples#TraitCompletionLocalVars'].id]
+    \ 'completing_cells': [traits['cells#examples#TraitCompletionContext'].id]
     \ })
 
   " The | means cursor location. Thus if you've typed one lower case char
@@ -289,11 +290,16 @@ column: atways from 1
     'filename': ,
     'filepath': ,
     'bufid' :,
+    'cword' :, word below cursor
+    'offset': byte offset in file
 
 <location_keys>:
     'filepath':
-    'line':
-    'col': (optional)
+
+      'line':
+      'col': (optional)
+    and or 
+      'offset':
 
 " internal use:
 
@@ -316,8 +322,8 @@ column: atways from 1
 { 'type': 'killed': sender: 'cell-id' } " if other cells might depend on a cell it can notify the other cells that it has been killed
 
 { 'type': 'definitions', <cursor_context> } -> [{'title', 'text': 'mulitiline text', 'kind': '', <location_keys>}]
-{ 'type': 'usages',    <cursor_context> } -> [{'title', 'text': 'mulitiline text', 'kind': '', <location_keys>}]
-{ 'type': 'types',      <cursor_context> } -> [{'text': 'mulitiline text', 'kind': '', <location_keys>}]
+{ 'type': 'usages',    <cursor_context> } ->   [{'title', 'text': 'mulitiline text', 'kind': '', <location_keys>}]
+{ 'type': 'types',      <cursor_context> } ->  [{'text': 'mulitiline text', 'kind': '', <location_keys>}]
 
 { 'type': 'error_markers_for_buf' } ->
 { 'type': 'error_markers_changed' } ->
@@ -338,16 +344,26 @@ column: atways from 1
 
   {'type': 'completions'
     <cursor_context>
-    'match_types': ['prefix', 'ignore_case', 'camel_case_like', 'last_upper'] # match_types is deprecated and will be removed
-      prefix: chars have to match at the beginning
-      camel_case_like ccl -> camel_case_like
-      last_upper ccE -> camel_case_lik*e*
-      ycm_like  -> youcompleteme like (match chars in order)
+    'cache_id': [ ... ], # if the editor still has completions in cache they don't have to be resent
+    'strategy': ['all', 'match', 'first_char']
+        prefix: chars have to match at the beginning
+        camel_case_like ccl -> camel_case_like
+        last_upper ccE -> camel_case_lik*e*
+        ycm_like  -> youcompleteme like (match chars in order)
   }
+
+  Most completions take quite a while to complete and slows down typing.
+  A good strategy is what eclim does: get all completions for instance ., cache the
+  result, and then filter the results depending on what was typed.
+
+  Thus the perfect implementation sends the items once to the editor which can
+  then cache and only apply on the fly filtering and narrow down as user
+  continues typing. Showing more than 10 items is not that productive and also
+  might slow down the editor
 
   reply =>
   [
-    { 'column': .., 'context': 'default', 'completions': [{'word', 'word_propability', 'description', 'continuation' : '..', 'w' => float}] }
+    { 'cache_id':.., 'column': .., 'context': 'default', 'completions': [{'word', 'word_propability', 'description', 'continuation' : '..', 'w' => float}] }
   ]
 
   word: the word to be inserted
@@ -449,10 +465,18 @@ Example implementation for Vim see cells#viml#EditorCoreInterface()
 
 { 'type': 'editor_features' } # reply with list of features the editor implementation supports
 { 'type': 'editor_subscribe', 'subscriptions': {'name' : {}, 'name': {}} } # subscribe to features / events
+
 { 'type': 'editor_buffers', 'keys': ['id', 'filename', 'modify_state'] } # subscribe to features / events
   -> reply { 'buffers': [{'id': .., 'filename': ..}, 'modify_state': }]}
 { 'type': 'editor_buffer_lines', 'bufid': .., ['from_line': .., 'to_line': .. ]}
   -> reply { 'buffers': [{'id': .., 'filename': ..}, 'modify_state': }]}
+{ 'type': 'editor_commands', 'commands': [command] }
+
+  command one of
+    'write_current_buffer'
+    'set_current_line'
+    'editor_buffers'
+    {'set_current_line': 'line_contents'}
 
 features:
   ['editor_bufopen', 'editor_bufclose', 'editor_buf_written', 'editor_buf_cursor_pos']
@@ -655,6 +679,9 @@ TODO
   * If local var completion and python completion both have options thing about
     which one to show or both or how to set priorities
 
+  * For VimL Traits add code which updates cells (reruns functions) when files
+    get written (life update)
+
   * Integrate YCM, Eclim, tools
 
   * completions after @ (host completion) within file / project files
@@ -684,7 +711,7 @@ TODO
   * snippet engine integration for simple snipmate like snippet or ultisnips?
     I feel that a simple snipmate like implementation would be good enough
 
-  * tag based completion sample implementation
+  
 
   * rename cell_list to list_cells?
 
@@ -736,6 +763,8 @@ TODO
   * Python gather with timeout to catch issues (see examples.py, CompletionBasedOnFiles)
 
   * Plugin system to manage and update third party plugins
+
+  * Python rewrite all the ask with ask_ syntax see def __getattr__(self, name) in class Cell in py3/site-packages/cells/__init__.py
 
 TIPS:
 =====

@@ -176,7 +176,7 @@ fun! cells#viml#EditorCoreInterface() abort
   exec 'au BufUnload * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufunload", "bufid": bufnr("%"), "filename": bufname("%")})'
   augroup end
 
-  fun! c.l_editor_buffers(event)
+  fun! c.__editor_buffers()
     let buffers = []
     let currentnr = bufnr('%')
 
@@ -194,13 +194,47 @@ fun! cells#viml#EditorCoreInterface() abort
       endif
       call add(buffers, b)
     endfor
+    return {'buffers': buffers, 'current': b}
+  endf
 
-    call self.reply_now(a:event, {'buffers': buffers, 'current': b})
+  fun! c.l_editor_buffers(event)
+    " TODO drop this, use editor_commands
+    call self.reply_now(a:event, self.__editor_buffers())
+  endf
+
+  fun! c.l_editor_commands(event)
+    let results = []
+    for command in a:event.commands
+      if type(command) == type("")
+        if command == "write_current_buffer"
+          update
+          call add(results, "done")
+        elseif command == "write_current_buffer_silently"
+          silent noautocmd update
+        elseif command == "buffers"
+          call add(results, self.__editor_buffers())
+        else
+          throw "unknown command ".string(command)
+        endif
+      elseif type(command) == type({})
+        if has_key(command, 'editor_buffer_lines')
+          call add(results, getbufline(get(a:event, 'bufid', '%') ,get(a:event, 'from_line', 1), get(a:event, 'to_line', line('$'))))
+        elseif has_key(command, 'eval')
+          call add(results, eval(command.eval))
+        elseif has_key(command, "set_current_line")
+          call setline('.', command.set_cursor_line)
+          call add(results, "done")
+        else
+          throw "unknown command ".string(command)
+        endif
+      endif
+    endfor
+    call self.reply_now(a:event, results)
   endf
 
   fun! c.l_editor_buffer_lines(event)
+    " TODO drop this, use editor_commands
     let lines = getbufline(get(a:event, 'bufid', '%') ,get(a:event, 'from_line', 1), get(a:event, 'to_line', line('$')))
-    let g:lines = lines
     call self.reply_now(a:event, lines)
   endfun
 
@@ -222,6 +256,22 @@ fun! cells#viml#EditorCoreInterface() abort
 
   fun! c.l_cell_list(event)
     call self.async_reply(map(copy(cells#viml#CellsBySelector(get(a:event, 'selector', 'all'))), 'v:val.id'))
+  endf
+
+endf
+
+fun! cells#viml#EditorVimInterface() abort
+  " exposes Vim specific featuers, this is the reference implementation
+
+  let c = cells#viml#Cell({'purpose': 'api to vim features'})
+
+  fun! c.l_get_options(event)
+    let r = []
+    for o in get(a:event, 'options')
+      if o == 'runtimepath'
+        let r.runtimepath = &rtp
+    endfor
+    call self.reply_now(a:event, r)
   endf
 
 endf

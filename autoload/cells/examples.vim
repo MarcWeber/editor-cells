@@ -105,7 +105,7 @@ endf " }}}
 
 
 
-fun! cells#examples#TraitCompletionLocalVars(cell) abort
+fun! cells#examples#TraitCompletionContext(cell) abort
   " very fuzzy searching of important vars nearby the cursor which you're very
   " likely to be using ..
   " TODO: rewrite using Python ?
@@ -114,19 +114,19 @@ fun! cells#examples#TraitCompletionLocalVars(cell) abort
 
   fun! a:cell.__post_function_vim(words, match, w)
     if a:match[1] != ''
-      let a:words[a:match[1]] = {'word': a:match[1], 'w': a:w -0.1, 'contexts': ['local_var_like'], 'kind': 'LocalVars'}
+      let a:words[a:match[1]] = {'word': a:match[1], 'w': a:w -0.1, 'contexts': ['local_var_like'], 'kind': 'Contexts'}
     endif
     for x in split(a:match[2], ',\s*')
-      let a:words[x] = {'word': x, 'replacement': 'a:'.x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'LocalVars'}
+      let a:words[x] = {'word': x, 'replacement': 'a:'.x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'}
     endfor
   endf
 
   fun! a:cell.__post_function_fun_args(words, match, w)
       if a:match[1] != ''
-        let a:words[a:match[1]] = {'word': a:match[1], 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'LocalVars'}
+        let a:words[a:match[1]] = {'word': a:match[1], 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'}
       endif
       for x in split(a:match[2], ',\s*')
-        let a:words[x] = {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'LocalVars' }
+        let a:words[x] = {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts' }
       endfor
   endf
 
@@ -134,19 +134,18 @@ fun! cells#examples#TraitCompletionLocalVars(cell) abort
   fun! a:cell.__first_match_as_comma_list(words, match, w)
       if a:match[1] != ''
         for x in split(a:match[1], '\s*,\s*')
-          let a:words[x] = {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'LocalVars'}
+          let a:words[x] = {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'}
         endfor
       endif
   endf
 
   fun! a:cell.__first_match(words, match, w)
       if a:match[1] != ''
-        let a:words[a:match[1]] = {'word': a:match[1], 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'LocalVars'}
+        let a:words[a:match[1]] = {'word': a:match[1], 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'}
       endif
   endf
 
   fun! a:cell.local_vars(linenr)
-
     let words = {}
     let linenr = 1
     let lines_max = 500
@@ -163,10 +162,11 @@ fun! cells#examples#TraitCompletionLocalVars(cell) abort
         \ ['\%(\.vim\)$', 'fun\S*!\?\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__post_function_vim],
         \ ['\%(\.vim\)$'      , 'let\s\(\S\+\)\s', self.__first_match],
         \ ['\%(\.vim\)$'      , 'for\s\+\(\S\+\)', self.__first_match],
-        \ ['\%(\.py\)$'      , '\(\w\%(\s*,\s*\w*\)\?\)\s*=', self.__first_match_as_comma_list]
+        \ ['\%(\.py\)$'      , '\(\w\%(\s*,\s*\w*\)\?\)\s*=', self.__first_match_as_comma_list],
+        \ ['\%(\.py\)$'      , 'for\s\+\(\w\+\%(\s*,\s*\w*\)*\)\s\+in\s', self.__first_match_as_comma_list]
         \ ]
 
-    let ext = bufname('%:t')
+    let ext   = expand('%:e')
     let bname = bufname('%')
 
     let break_on_regex_by_ext = {
@@ -204,6 +204,20 @@ fun! cells#examples#TraitCompletionLocalVars(cell) abort
     for c in completions
       if has_key(c, 'replacement') | let c.word = c.replacement | call remove(c, 'replacement') | endif
     endfor
+
+    let ext   = expand('%:e')
+
+    " things which you may use very often
+    if ext == 'py'
+      if a:event.event.line_split_at_cursor[0] =~ '^i'
+        call add(completions, {'w': 10, 'word': 'import ', 'kind': 'Context'})
+      endif
+    endif
+    if ext == 'php'
+      if a:event.event.line_split_at_cursor[0] =~ '^r'
+        call add(completions, {'word': 'require_once ', 'kind': 'Context'})
+      endif
+    endif
 
     call self.reply_now(a:event, [{
           \ 'column': a:event.event.position[2] - len(word_before_cursor),
@@ -290,7 +304,6 @@ fun! cells#examples#TraitTestCompletionAllBuffers(cell) abort
 
     for bufnr in range(1, bufnr('$'))
       if bufnr == this_buf && self.omit_current_buffer | continue | endif
-      echom 'this buffer '.bufnr
       let recently_visited_care = 20
       let add  = (recently_visited_care - index(self.buf_ids_entered_recently[0:recently_visited_care], bufnr)) / recently_visited_care
       let contexts = [ 'rec_buf'.add ]
@@ -402,9 +415,9 @@ fun! cells#examples#PathCompletion(cell) abort
   let a:cell['completion-functions'] = get(a:cell, 'completion-functions', [])
 
   fun! a:cell.l_completions(event)
-    let file_char = '\%(\w\|[-_.]\)'
-    let path_start = '\%(\w:[/\\]\|\/\)\?'
-    let paths = '\%('.file_char.'\+[\\/]\)*'
+    let file_char = '\%(\w\|[-_.]\)' " c: or ~
+    let path_start = '\%(\w:[/\\]\|[~]\|\/\)\?' " foo/bar/
+    let paths = '\%('.file_char.'\+[\\/]\)*'    " the part after the last /
     let file = file_char.'*'
     let list = matchlist(a:event.event.line_split_at_cursor[0], '\('.path_start.paths.'\)\('.file.'\)$' )
 
@@ -424,7 +437,14 @@ fun! cells#examples#PathCompletion(cell) abort
   return a:cell
 endf
 
+fun! cells#examples#LocationsToQF(locations) abort
+  let qflist = map(copy(a:locations), 'cells#util#LocationToQFEntry(v:val, {})')
+  call setqflist(qflist)
+endf
+
 fun! cells#examples#TraitDefinitionsAndUsages(cell) abort
+  " VimL user interface for definitions, types, usages events
+
   " Usage:
   " " goto definition of thing at cursor
   " nnoremap gd :call g:cells.cells['DefinitionsAndUsages'].definitions()<cr>
@@ -446,9 +466,9 @@ fun! cells#examples#TraitDefinitionsAndUsages(cell) abort
     if len( flattened ) == 0
       echom "No hits"
     elseif len( flattened ) == 1
-      call cells#util#GotoLocationKeys(flattened[0])
+      call cells#util#GotoLocation(flattened[0])
     else
-      call setqflist(map(copy(flattened), '{"filename": v:val.filepath, "col": get(v:val,"column",1), "lnum": v:val.line, "text": get(v:val, "title", "")}'))
+      call cells#examples#LocationsToQF(flattened)
       cope
     endif
   endf

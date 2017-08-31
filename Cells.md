@@ -18,7 +18,7 @@ cells#examples#TraitCompletionLastInsertedTexts(cell)
 tags: [completion]
 description: complete from last insterted texts
 
-cells#examples#TraitCompletionLocalVars(cell)
+cells#examples#TraitCompletionContext(cell)
 tags: [completion]
 description: complete some local vars those regex detect
 
