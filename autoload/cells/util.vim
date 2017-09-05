@@ -152,11 +152,6 @@ function! cells#util#OutputAsList(command) abort
     return split(redir_lines, '\n')[2:-2]
 endf
 
-function! cells#util#Log(s)
-  " let s = type(a:s) == type('') ? a:s : string(a:s) 
-  " call writefile([s], '/tmp/log-vim', 'append')
-endf
-
 fun! cells#util#FilePathFromFilename(name)
   return a:name
 endf

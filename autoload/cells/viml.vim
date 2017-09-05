@@ -96,7 +96,7 @@ fun! cells#viml#emit_selector(event) abort
 endf
 
 fun! cells#viml#emit(event, viml_cells) abort
-  call cells#util#Log(a:event)
+  call cells#debug#Log(a:event)
   let listener = 'l_'.a:event.type
   for cell in a:viml_cells
     if has_key(cell, listener)
@@ -174,10 +174,20 @@ fun! cells#viml#EditorCoreInterface() abort
   exec 'au BufRead   * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufread",   "bufid": bufnr("%"), "filename": bufname("%")})'
   exec 'au BufEnter  * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufenter",  "bufid": bufnr("%"), "filename": bufname("%")})'
   exec 'au BufUnload * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufunload", "bufid": bufnr("%"), "filename": bufname("%")})'
+  exec 'au CursorMovedI,BufEnter * call g:cells.cells['. string(c.id) .'].__cursor_moved()'
   augroup end
 
+  let c.last_cursor_positions = get(c, 'last_cursor_positions', {})
+  let c.buffers_visited_order = get(c, 'buffers_visited_order', [])
+
+  fun! c.__cursor_moved()
+    let bufnr = bufnr('%')
+    let self.last_cursor_positions[bufnr] = getpos('.')
+    let self.buffers_visited_order = [bufnr] + filter(self.buffers_visited_order, 'v:val != bufnr')[:100]
+  endf
+
   fun! c.__editor_buffers()
-    let buffers = []
+    let buffers = {}
     let currentnr = bufnr('%')
 
     for bufnr in range(1, bufnr('$'))
@@ -185,6 +195,9 @@ fun! cells#viml#EditorCoreInterface() abort
       let b = {}
       let b['bufid'] = bufnr
       let b['filepath'] = cells#util#FilePathFromFilename(bufname(bufnr))
+      if has_key(self.last_cursor_positions, bufnr)
+        let b['last_cursor_pos'] = self.last_cursor_positions[bufnr]
+      endif
       let b['modify_state'] = 'todo'
       " TODO safe as bufvar whenever a change happens so that completion code
       " knows which files got updated
@@ -192,9 +205,9 @@ fun! cells#viml#EditorCoreInterface() abort
       if bufnr == currentnr
         let current = b
       endif
-      call add(buffers, b)
+      let buffers[bufnr] = b
     endfor
-    return {'buffers': buffers, 'current': b}
+    return {'buffers': buffers, 'current': b, 'buffers_visited_order' : self.buffers_visited_order}
   endf
 
   fun! c.l_editor_buffers(event)
@@ -217,8 +230,11 @@ fun! cells#viml#EditorCoreInterface() abort
           throw "unknown command ".string(command)
         endif
       elseif type(command) == type({})
-        if has_key(command, 'editor_buffer_lines')
-          call add(results, getbufline(get(a:event, 'bufid', '%') ,get(a:event, 'from_line', 1), get(a:event, 'to_line', line('$'))))
+        if has_key(command, 'show_message')
+          echom command.show_message
+        elseif has_key(command, 'lines_of_buf_id')
+          " lines_of_buf_id % means current buffer
+          call add(results, getbufline(a:event['lines_of_buf_id']), get(a:event, 'from_line', 1), get(a:event, 'to_line', line('$'))))
         elseif has_key(command, 'eval')
           call add(results, eval(command.eval))
         elseif has_key(command, "set_current_line")

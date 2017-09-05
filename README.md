@@ -476,6 +476,7 @@ Example implementation for Vim see cells#viml#EditorCoreInterface()
     'write_current_buffer'
     'set_current_line'
     'editor_buffers'
+    'lines_of_buf_id'
     {'set_current_line': 'line_contents'}
 
 features:
@@ -663,6 +664,9 @@ They may help you make decisions
 
 TODO
 ====
+  * language server client implementation
+
+  * completion in python (for speed) and with caching (only ask once after . ..)
 
   * line based completion whole project
 
@@ -765,6 +769,25 @@ TODO
   * Plugin system to manage and update third party plugins
 
   * Python rewrite all the ask with ask_ syntax see def __getattr__(self, name) in class Cell in py3/site-packages/cells/__init__.py
+
+
+
+LANGUAGES AND SOLUTIONS
+=========================
+Maybe help me find out what really works in almost all cases ..
+
+  PHP:
+    https://github.com/felixfbecker/php-language-server -> no completion on A::
+    Eclim -> Has sometimes problem completing top level (null pointer Exception)
+    https://github.com/lvht/phpcd.vim -> could'nt make it work for trivial cases such as $this in same class or file_put_contents
+    https://github.com/padawan-php/padawan.vim -> didn't try yet
+
+  typescript
+    -> TODO https://github.com/Microsoft/TypeScript/wiki/Standalone-Server-%28tsserver%29
+    language-client: https://github.com/sourcegraph/javascript-typescript-langserver.git (
+
+
+  
 
 TIPS:
 =====

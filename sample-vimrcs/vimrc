@@ -162,7 +162,7 @@ fun! SetupPy3AsyncioTestCellsWithinVim() " [python3 within_vim]
 
   let bridge_cell = cells#viml_py3_inside_vim#BridgeCell()
 
-  call bridge_cell.cell_new_by_name({'name': 'cells.asyncio.examples.CompletionBasedOnFiles', 'args': [], 'kargs': {'id': 'CompletionBasedOnFiles'}})
+  call bridge_cell.cell_new_by_name({'name': 'cells.asyncio.examples.CompletionBasedOnFiles', 'args': [], 'kwargs': {'id': 'CompletionBasedOnFiles'}})
 
   let by_filetype = []
   call add(by_filetype, {
@@ -184,7 +184,7 @@ fun! SetupPy3TestCellsExternalProcess() " [python3 external_process]
   " call py3_cell_collection_cell.cell_new_by_name({'name': 'cells.examples.Quickfix'})
   " call py3_cell_collection_cell.cell_new_by_name({'name': 'cells.examples.CompletionBasedOnFiles'})
   " call py3_cell_collection_cell.cell_new_by_name({'name': 'cells.examples.Completion'})
-  call py3_cell_collection_cell.cell_new_by_name({'name': 'cells.asyncio.examples.CompletionBasedOnFiles', 'args': [], 'kargs': {'id': 'CompletionBasedOnFiles'}})
+  call py3_cell_collection_cell.cell_new_by_name({'name': 'cells.asyncio.examples.CompletionBasedOnFiles', 'args': [], 'kwargs': {'id': 'CompletionBasedOnFiles'}})
 
   let by_filetype = []
   call add(by_filetype, {

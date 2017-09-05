@@ -39,7 +39,7 @@ fun! cells#vim8#CellCollectionExternalProcessTrait(cell) abort
 
   fun! a:cell.cb(channel, str)
     if a:str =~ '^{'
-      call cells#util#Log('got json str '.a:str)
+      call cells#debug#Log('got json str '.a:str)
       let event = json_decode(a:str)
       if has_key(event, 'reply_to')
         let wait_for_id__for_requesting_cell = event.wait_for_id__for_requesting_cell

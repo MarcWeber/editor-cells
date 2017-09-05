@@ -145,16 +145,18 @@ fun! cells#examples#TraitCompletionContext(cell) abort
       endif
   endf
 
-  fun! a:cell.local_vars(linenr)
+  fun! a:cell.local_vars(linenr, plus, minus)
     let words = {}
     let linenr = 1
     let lines_max = 500
 
     let nearby_cursor_lines = 100
 
-    let linenr = a:linenr
-    let min = linenr - lines_max
-    if min < 0 | let min = 1 | endif
+    let min = a:linenr - a:minus
+    let linenr = a:linenr + a:plus
+
+    if linenr > line('$') | let linenr = line('$') | endif
+    if min < 1 | let min = 1 | endif
 
     let regexes_by_filepath = [
         \ ['\%(\.js\)$'       , 'var\s\(\S\+\)\s', self.__first_match],
@@ -162,7 +164,7 @@ fun! cells#examples#TraitCompletionContext(cell) abort
         \ ['\%(\.vim\)$', 'fun\S*!\?\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__post_function_vim],
         \ ['\%(\.vim\)$'      , 'let\s\(\S\+\)\s', self.__first_match],
         \ ['\%(\.vim\)$'      , 'for\s\+\(\S\+\)', self.__first_match],
-        \ ['\%(\.py\)$'      , '\(\w\%(\s*,\s*\w*\)\?\)\s*=', self.__first_match_as_comma_list],
+        \ ['\%(\.py\)$'      , '\(\w\+\%(\s*,\s*\w\+\)\?\)\s*=', self.__first_match_as_comma_list],
         \ ['\%(\.py\)$'      , 'for\s\+\(\w\+\%(\s*,\s*\w*\)*\)\s\+in\s', self.__first_match_as_comma_list]
         \ ]
 
@@ -180,7 +182,9 @@ fun! cells#examples#TraitCompletionContext(cell) abort
 
     while linenr >= min
       let line = getline(linenr)
-      let w = 10.0 - ( abs(1.0 + a:linenr - linenr) / lines_max)
+      let w = 10.0 - (abs(a:linenr - linenr) / 30)
+      if linenr > a:linenr | let w -=  4 | endif " below cursor is less likely
+
       if (break_on_regex != '' && line =~  break_on_regex) || linenr < min | break | endif
 
       for l in regexes_by_filepath
@@ -198,7 +202,7 @@ fun! cells#examples#TraitCompletionContext(cell) abort
 
     let word_before_cursor = matchstr(a:event.event.line_split_at_cursor[0], '\zs\w*$')
 
-    let words = self.local_vars(a:event.event.position[1])
+    let words = self.local_vars(a:event.event.position[1], 300, 10)
 
     let completions = cells#util#match_by_type2(values(words), word_before_cursor)
     for c in completions
@@ -494,4 +498,18 @@ fun! cells#examples#TraitDefinitionsAndUsages(cell) abort
 
   return a:cell
 
+endf
+
+
+fun! cells#examples#TraitTestMappings(cell) abort
+  " for debugging events
+  call cells#traits#Ask(a:cell)
+  fun! a:cell.ask_log(event) abort
+    debug call self.ask('__results', a:event)
+  endf
+
+  fun! a:cell.__results(request) abort
+    debug echom string(a:request)
+  endf
+  return a:cell
 endf

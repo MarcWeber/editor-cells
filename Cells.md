@@ -6,7 +6,7 @@ List some cells and what they do
 features
 --------------------
 completion
-c,cpp,java (like ft in Vim)
+c,cpp,java,python (like ft in Vim)
 
 
 cells
@@ -45,9 +45,17 @@ Python implementations
 py3/site-packages/cells/asyncio/examples.py:
 
 CompletionBasedOnFiles 
-tags: [completion]
+tags: [completion, definition]
 description: Python implementation completing words from project files or Vim buffer files
 
-JediCompletion:
-tags: [completion]
+cells.asyncio.python_jedi.JediCompletion:
+tags: [completion, definition, python]
 description: Python completion, definiton, usages based on Jedi
+
+cells.asyncio.eclim.Eclim
+tags: [completion, definition, python, ruby, scala, java, php, css, html]
+description: Eclipse based headless completion, see eclim.org. Tested for PHP, should be easy to add more languages
+
+cells.asyncio.language_server_protocol_client.LanguageServerProtocolClient
+tags: [completion, definiton]
+description: See http://langserver.org/, some features are still missing

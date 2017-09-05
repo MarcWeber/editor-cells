@@ -68,9 +68,9 @@ fun! cells#traits#Ask(cell) abort
 
     " emit event watiing for replies, calling cb when ready
     let a:event.reply_to = self.id
-    call cells#util#Log('request_id: '.request_id.' vor emit '.string(request))
+    call cells#debug#Log('request_id: '.request_id.' vor emit '.string(request))
     call g:cells.emit(a:event)
-    call cells#util#Log('request_id: '.request_id.' vor after emit '.string(request))
+    call cells#debug#Log('request_id: '.request_id.' vor after emit '.string(request))
     let request.results = a:event.results
     for wait_for_id in a:event.wait_for
       call request.process_wait_for(wait_for_id)
@@ -93,10 +93,10 @@ fun! cells#traits#Ask(cell) abort
 
   fun! a:cell.l_reply(event) abort
     let request_id = a:event.request_id
-    if !has_key(self.requests, request_id) | call cells#util#Log('request_id '.request_id.' no longer known ?') | return | endif
+    if !has_key(self.requests, request_id) | call cells#debug#Log('request_id '.request_id.' no longer known ?') | return | endif
     let request = self.requests[request_id]
-    call cells#util#Log('l_reply request_id '.request_id.' request '.string(request))
-    call cells#util#Log('l_reply request_id '.request_id.' event '.string(a:event))
+    call cells#debug#Log('l_reply request_id '.request_id.' request '.string(request))
+    call cells#debug#Log('l_reply request_id '.request_id.' event '.string(a:event))
     if has_key(request.waiting_for, a:event.wait_for_id)
       call remove(request.waiting_for, a:event.wait_for_id)
       call request.process_event_waited_for(a:event)
@@ -105,7 +105,7 @@ fun! cells#traits#Ask(cell) abort
     endif
 
     call self.__check_request_finished(request)
-    call cells#util#Log('l_reply request_id '.request_id.' finsihed request fun finished '.string(request))
+    call cells#debug#Log('l_reply request_id '.request_id.' finsihed request fun finished '.string(request))
   endf
 
 

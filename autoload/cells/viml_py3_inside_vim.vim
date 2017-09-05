@@ -26,7 +26,7 @@ fun! cells#viml_py3_inside_vim#BridgeCell() abort
         \ 'import vim',
         \ 'import asyncio',
         \ 'sys.path.append(vim.eval("s:path")+"/py3/site-packages/")',
-        \ 'import cells.asyncio as cells',
+        \ 'import cells.asyncio as cells_a',
         \ 'import cells.util',
         \ 'import traceback',
         \ 'import cells.python_within_vim',
