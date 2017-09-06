@@ -103,8 +103,6 @@ fun! cells#examples#TraitCompletionLastInsertedTexts(cell) abort " {{{
 
 endf " }}}
 
-
-
 fun! cells#examples#TraitCompletionContext(cell) abort
   " very fuzzy searching of important vars nearby the cursor which you're very
   " likely to be using ..

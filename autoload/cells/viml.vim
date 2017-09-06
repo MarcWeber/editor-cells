@@ -195,6 +195,7 @@ fun! cells#viml#EditorCoreInterface() abort
       let b = {}
       let b['bufid'] = bufnr
       let b['filepath'] = cells#util#FilePathFromFilename(bufname(bufnr))
+      let b['vim_filetype'] = getbufvar(bufnr, '&filetype')
       if has_key(self.last_cursor_positions, bufnr)
         let b['last_cursor_pos'] = self.last_cursor_positions[bufnr]
       endif

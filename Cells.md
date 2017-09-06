@@ -44,7 +44,7 @@ Python implementations
 ----------------------
 py3/site-packages/cells/asyncio/examples.py:
 
-CompletionBasedOnFiles 
+cells.asyncio.CompletionBasedOnFiles 
 tags: [completion, definition]
 description: Python implementation completing words from project files or Vim buffer files
 
@@ -59,3 +59,7 @@ description: Eclipse based headless completion, see eclim.org. Tested for PHP, s
 cells.asyncio.language_server_protocol_client.LanguageServerProtocolClient
 tags: [completion, definiton]
 description: See http://langserver.org/, some features are still missing
+
+cells.asyncio.CompletionInEmails
+tags: [completion]
+description: completing email addresses and names found in same email document (ft=mail case)
