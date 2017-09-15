@@ -2,11 +2,11 @@
 fun! cells#match#MatchScoreFunctionDefault(d, s)
   try
     if a:s =~ a:d.regex_camel_case_like
-      return 10
+      return 1.0
     elseif a:s =~ a:d.regex_prefix
-      return 1.5
+      return 0.01
     elseif a:s =~ a:d.regex_ignore_case
-      return 0.5
+      return 0.05
     else
       return 0
     endif

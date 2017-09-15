@@ -128,6 +128,12 @@ fun! cells#examples#TraitCompletionContext(cell) abort
       endfor
   endf
 
+  fun! a:cell.__post_fun_args(words, match, w)
+      for x in split(a:match[1], ',\s*')
+        let a:words[x] = {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts' }
+      endfor
+  endf
+
   " python like x, b = [a,b]
   fun! a:cell.__first_match_as_comma_list(words, match, w)
       if a:match[1] != ''
@@ -143,6 +149,26 @@ fun! cells#examples#TraitCompletionContext(cell) abort
       endif
   endf
 
+  " prefix $
+  fun! a:cell.__php_match_all(words, match, w)
+    for match in a:match[1:]
+      if match == '' | continue | endif
+      let w = substitute(match, '\$', '', '')
+      let w = substitute(match, ' ', '', 'g')
+      let a:words[w] = {'word': w, 'replacement' : match, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'}
+    endfor
+  endf
+
+  fun! a:cell.__php_match_comma_list(words, match, w)
+    if a:match[1] != ''
+      for x in split(substitute(a:match[1], '&', '', 'g'), '\s*,\s*')
+        let w = substitute(x, '\$', '', '')
+        let a:words[w] = {'word': w, 'replacement': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'}
+      endfor
+    endif
+    echom string(a:words)
+  endf
+
   fun! a:cell.local_vars(linenr, plus, minus)
     let words = {}
     let linenr = 1
@@ -156,14 +182,22 @@ fun! cells#examples#TraitCompletionContext(cell) abort
     if linenr > line('$') | let linenr = line('$') | endif
     if min < 1 | let min = 1 | endif
 
+    " fileptah regex , regex, function handling match results, comment
     let regexes_by_filepath = [
         \ ['\%(\.js\)$'       , 'var\s\(\S\+\)\s', self.__first_match],
         \ ['\.\%(js\|py\)$', '\%(function\|def\)\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__post_function_fun_args],
         \ ['\%(\.vim\)$', 'fun\S*!\?\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__post_function_vim],
         \ ['\%(\.vim\)$'      , 'let\s\(\S\+\)\s', self.__first_match],
         \ ['\%(\.vim\)$'      , 'for\s\+\(\S\+\)', self.__first_match],
+        \ ['\%(\.ts\)$'      , '\<\(\S\+\)(\([^)]*\)', self.__post_function_fun_args],
+        \ ['\%(\.ts\|\.js\)$', '(\([^)]*\))\s*[=][>]\s*', self.__post_fun_args],
         \ ['\%(\.py\)$'      , '\(\w\+\%(\s*,\s*\w\+\)\?\)\s*=', self.__first_match_as_comma_list],
-        \ ['\%(\.py\)$'      , 'for\s\+\(\w\+\%(\s*,\s*\w*\)*\)\s\+in\s', self.__first_match_as_comma_list]
+        \ ['\%(\.py\)$'      , 'for\s\+\(\w\+\%(\s*,\s*\w*\)*\)\s\+in\s', self.__first_match_as_comma_list],
+        \ ['\%(\.php\)$'     , '\(\$\S\+\)\s*=', self.__php_match_all, " PHP assignment"], 
+        \ ['\%(\.php\)$'     , 'use(\([^)]*\))', self.__php_match_comma_list, " PHP use(..)"], 
+        \ ['\%(\.php\)$'     , 'function\s\+\([^( \t]\+(\)', self.__php_match_all, " PHP function name"], 
+        \ ['\%(\.php\)$'     , 'function(\([^)]*\))=', self.__php_match_comma_list, " PHP function args"], 
+        \ ['\%(\.php\)$'     , '\s\+as\s\+\([^ \t)]\+\)\%(\s*=>\s*\([^ \t)]\+\)\)\?', self.__php_match_all," PHP foreach" ] 
         \ ]
 
     let ext   = expand('%:e')

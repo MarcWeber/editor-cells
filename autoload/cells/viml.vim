@@ -211,11 +211,6 @@ fun! cells#viml#EditorCoreInterface() abort
     return {'buffers': buffers, 'current': b, 'buffers_visited_order' : self.buffers_visited_order}
   endf
 
-  fun! c.l_editor_buffers(event)
-    " TODO drop this, use editor_commands
-    call self.reply_now(a:event, self.__editor_buffers())
-  endf
-
   fun! c.l_editor_commands(event)
     let results = []
     for command in a:event.commands
@@ -248,12 +243,6 @@ fun! cells#viml#EditorCoreInterface() abort
     endfor
     call self.reply_now(a:event, results)
   endf
-
-  fun! c.l_editor_buffer_lines(event)
-    " TODO drop this, use editor_commands
-    let lines = getbufline(get(a:event, 'bufid', '%') ,get(a:event, 'from_line', 1), get(a:event, 'to_line', line('$')))
-    call self.reply_now(a:event, lines)
-  endfun
 
   fun! c.__emit_buffer_event(event_data)
     let a:event_data.filepath = cells#util#FilePathFromFilename(a:event_data.filename)

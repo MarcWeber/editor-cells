@@ -30,9 +30,78 @@ The code triggering the completion is writen in VimL.
 You can write your own completions easily such as cells#examples#TraitCompletionContext.
 This sample code finds function arguments and local vars triggering completions for them.
 
-VIM exmaple
+Configuration examples
 ===========
+Vim: section below
 
+
+EMACS example
+=============
+To be written
+```elisp
+; TODO
+```
+
+WHAT IS A CELL?
+===================
+A cell has
+  - has an id such as 'viml:20'
+  - At least one purpose such as "I provide signs / completions / mappings"
+  - can talk to other cells by receiving and sending events
+Some porcelain is be provided for making async conversations easier
+
+
+How do events look like ?
+=========================
+An event is a dictionary which can be serialized (such as JSON) because most
+languages understand it in some way. 
+For now values should not contain 0 bytes (VimL restriction ?) - if its very
+important we have to find a solution.
+
+Event dictionary keys:
+
+  type: All events have it, e.g. 'completions' asking for completions
+
+  reply_to: <cell_id> If cells should sent back a reply emit an event to this.
+            Use one of the following reply types:
+            {'error': string}
+            {'value': string}
+            {'wait_for': [<list of cell ids>]}
+
+            maybe partial results will be supported in the future - streaming
+            as in JsonRpc - so that completion can send 1000 completions piecewise
+
+  request_id:  Only makes sens if reply_to is used. When replying pass the same
+               id so that asking cell knows which question the reply belongs to
+
+  timeout_sec: optional/ unimplemented: If you know that you don't want to wait forever set a time limit here.
+
+  sender: <cell-id>: Giving hints about the origin of an event
+
+  wait_for: [] list of cell_ids to be wait for till the result is complete (async replies)
+  wait_for_id: Eeach reply must contain this key to tell the asking cell that this reply was received so that it knows when all replies have arrived
+  result/error: reply result or reply exception
+  results:  [] list you can add results to (immediate replies). The result should have the form {'result/error': .., [...]}
+  wait_for_id__for_requesting_cell: When passing an event to another collection which replies asynchronously, see bin/py3cellcollection.py
+
+CELL COLLECTIONS
+================
+Each language has its own set of cells and some cells taking care
+of passing communication between them - its your task to setup communication in
+a way which works depending on how you want to use editor-cells.
+
+See "EVENTS Python" section below about 3 ways about how 'cell collection' interfacing
+can be implemented
+
+Get a list of all cells from all cell collections:
+  let cer = cells#viml#CellEchoReply()
+  call g:cells.emit({'reply_to': cer.id, 'type': 'cell_list'})
+
+Example external process see py3cellcollection.py, mind the special event
+set-cell-collection-name to set the collection name
+
+VIM SAMPLE CONFIGURATION
+=======================================
 ```viml
   set rtp+=path-to-editor-cells
 
@@ -136,69 +205,8 @@ VIM exmaple
 
 ```
 
-EMACS example
-=============
-To be written
-```elisp
-; TODO
-```
-
-WHAT IS A CELL?
-===================
-A cell has
-  - has an id such as 'viml:20'
-  - At least one purpose such as "I provide signs / completions / mappings"
-  - can talk to other cells by receiving and sending events
-Some porcelain is be provided for making async conversations easier
-
-
-How do events look like ?
+Viml cells implementation
 =========================
-An event is a dictionary which can be serialized (such as JSON) because most
-languages understand it in some way. 
-For now values should not contain 0 bytes (VimL restriction ?) - if its very
-important we have to find a solution.
-
-Event dictionary keys:
-
-  type: All events have it, e.g. 'completions' asking for completions
-
-  reply_to: <cell_id> If cells should sent back a reply emit an event to this.
-            Use one of the following reply types:
-            {'error': string}
-            {'value': string}
-            {'wait_for': [<list of cell ids>]}
-  request_id:  Only makes sens if reply_to is used. When replying pass the same
-               id so that asking cell knows which question the reply belongs to
-
-  timeout_sec: optional/ unimplemented: If you know that you don't want to wait forever set a time limit here.
-
-  sender: <cell-id>: Giving hints about the origin of an event
-
-  wait_for: [] list of cell_ids to be wait for till the result is complete (async replies)
-  wait_for_id: Eeach reply must contain this key to tell the asking cell that this reply was received so that it knows when all replies have arrived
-  result/error: reply result or reply exception
-  results:  [] list you can add results to (immediate replies). The result should have the form {'result/error': .., [...]}
-  wait_for_id__for_requesting_cell: When passing an event to another collection which replies asynchronously, see bin/py3cellcollection.py
-
-CELL COLLECTIONS
-================
-Each language has its own set of cells and some cells taking care
-of passing communication between them - its your task to setup communication in
-a way which works depending on how you want to use editor-cells.
-
-See "EVENTS Python" section below about 3 ways about how 'cell collection' interfacing
-can be implemented
-
-Get a list of all cells from all cell collections:
-  let cer = cells#viml#CellEchoReply()
-  call g:cells.emit({'reply_to': cer.id, 'type': 'cell_list'})
-
-Example external process see py3cellcollection.py, mind the special event
-set-cell-collection-name to set the collection name
-
-EVENTS VIML implementation
-==========================
 Most important sample code can be found in autoload/cells/viml.vim
 and some sample cell implementations can be found at autoload/cells/vim8
 
@@ -237,44 +245,57 @@ Example cell
   " send an event, tell everybody that a cell is new:
   call g:cells.emit({'type': 'announce_new_cell', 'cell': cell})
 
-EVENTS Python implementation
-============================
-Python 2.x without asyncio (for completness)
-No asyncio features -> see pyinline/*
-Seems to work fine from :py and :py builtin interpreter
-see sample-vimrcs/vimrc about how to set it up
-(TODO: update l_reply and ask code to look like Vim code)
 
+
+Viml debugging tips
+===============================
+  Debugging VimL See
+  if cells#vim_dev#GotoError('first') | cfirst | endif
+  and http://vim-wiki.mawercer.de/wiki/topic/debugging-viml.html
+
+Python events implementation
+============================
 Python 3.x & asyncio (recommended)
 Has asyncio which is nice for abstracting callbacks and waiting for
 event replies, but is harder to setup because Python can wait for external
 stuff when execution control is handed back to Vim.
 
+See py3/* and sample-vimrcs/vimrc
 
 class CompletionBasedOnFiles is a nice example illustrating about how
 to start to use asnyc functions to produce a reply which itself waits for
 results from events (gather). ask_iter could be used to process results as they
 come in.
 
-Python within Vim 8:
+Python 2.x without asyncio (for completness)
+No asyncio features -> see pyinline/*
+Seems to work fine from :py and :py builtin interpreter
+see sample-vimrcs/vimrc about how to set it up
+(TODO: update l_reply and ask code to look like Vim code)
+
+Python Cells within Vim8
 --------------------
 * Recommended: Python 3 within Vim: sample-vimrcs/vimrc -> SetupPy3TestCellsExternalProcess()
 * If you want to run ceels in many external processes see sample-vimrcs/vimrc -> SetupPy3AsyncioTestCellsWithinVim()
 * discouraged: Py2 (for completness) inside Vim: sample-vimrcs/vimrc -> SetupPyInsideVimTestCells()
 
+Python Cells within NeoVim
+-----------------------
+Vim8 code needs to be adopted
+
 Python within NeoVim 8:
---------------------
+-----------------------
 NeoVim: Should be easy to adopt the code (TODO).
 There is a new option using the RPC protocol built into NeoVim
 
-EVENTS JavaScript/PHP/Java/Scala/Go/Haskell/... 
+JavaScript/PHP/Java/Scala/Go/Haskell
 ===============================================
 to be implemented
 
 SPECIAL EVENTS / CONCEPTS / COMMON FEATURES
 ============================================
-Too much specification can hurt. So if you need keys/events add them and
-document the main features. Things will be fixed on the fly :-P.
+Quick & dirty documentation about some events already used.
+Change this first, then the code, because others might follow
 
 filename: maybe relative
 fileapth: more likely to be absolute (canonical filepath)
@@ -466,10 +487,6 @@ Example implementation for Vim see cells#viml#EditorCoreInterface()
 { 'type': 'editor_features' } # reply with list of features the editor implementation supports
 { 'type': 'editor_subscribe', 'subscriptions': {'name' : {}, 'name': {}} } # subscribe to features / events
 
-{ 'type': 'editor_buffers', 'keys': ['id', 'filename', 'modify_state'] } # subscribe to features / events
-  -> reply { 'buffers': [{'id': .., 'filename': ..}, 'modify_state': }]}
-{ 'type': 'editor_buffer_lines', 'bufid': .., ['from_line': .., 'to_line': .. ]}
-  -> reply { 'buffers': [{'id': .., 'filename': ..}, 'modify_state': }]}
 { 'type': 'editor_commands', 'commands': [command] }
 
   command one of
@@ -664,6 +681,8 @@ They may help you make decisions
 
 TODO
 ====
+  * py3 switch to 'import logger' ?
+
   * language server client implementation
 
   * completion in python (for speed) and with caching (only ask once after . ..)
@@ -774,25 +793,26 @@ TODO
 
 LANGUAGES AND SOLUTIONS
 =========================
-Maybe help me find out what really works in almost all cases ..
+Maybe help me find out what really works for languages almost all cases.
 
   PHP:
-    https://github.com/felixfbecker/php-language-server -> no completion on A::
-    Eclim -> Has sometimes problem completing top level (null pointer Exception)
-    https://github.com/lvht/phpcd.vim -> could'nt make it work for trivial cases such as $this in same class or file_put_contents
-    https://github.com/padawan-php/padawan.vim -> didn't try yet
+    completion definition like features
+      crane -> testing, https://github.com/HvyIndustries/crane/issues/359
+      https://github.com/felixfbecker/php-language-server -> no completion on A::
+      Eclim -> Has sometimes problem completing top level (null pointer Exception)
+      https://github.com/lvht/phpcd.vim -> could'nt make it work for trivial cases such as $this in same class or file_put_contents
+      https://github.com/padawan-php/padawan.vim -> didn't try yet
 
   typescript
+    npm install typescript -> tsserver probably is the way to go
+
+    syntax-vim: https://github.com/leafgarland/typescript-vim (one solution)
+
     -> TODO https://github.com/Microsoft/TypeScript/wiki/Standalone-Server-%28tsserver%29
+
     language-client: https://github.com/sourcegraph/javascript-typescript-langserver.git (
 
 
-  
-
-TIPS:
-=====
-  Debugging VimL See
-  if cells#vim_dev#GotoError('first') | cfirst | endif
 
 TODOS/ LINKS
 ============
@@ -820,4 +840,3 @@ and JS is browser ready, but others are type safe or faster.
 So .. - do what you want - but in a way others can reuse your work
 
 So use whatever you know best
-
