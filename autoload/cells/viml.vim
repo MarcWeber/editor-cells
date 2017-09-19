@@ -45,7 +45,10 @@ fun! cells#viml#Cell(cell) abort
   endf
 
   fun! cell.reply_now(event, r) abort
-    call add(a:event.results, self.__reply_event(a:event, {'result':  a:r}))
+    if has_key(a:event, 'results')
+      " only if sender expects results ..
+      call add(a:event.results, self.__reply_event(a:event, {'result':  a:r}))
+    endif
   endf
   fun! cell.reply_error_now(event, r) abort
     call add(a:event.results, self.__reply_event(a:event, {'error':  a:r}))

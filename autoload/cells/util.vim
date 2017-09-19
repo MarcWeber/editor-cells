@@ -136,6 +136,7 @@ fun! cells#util#EmitReturn(event) abort
   try
     call g:cells.emit(a:event)
   catch /.*/
+    call cells#debug#Log([v:exception, v:throwpoint])
     echom 'exception '.v:exception
     echom 'exception '.v:throwpoint
     throw v:exception
@@ -162,7 +163,8 @@ fun! cells#util#CursorContext(event)
   let a:event['bufid'] = bufnr('%')
   let a:event['filename'] = bufname('%')
   let a:event['cword'] = expand('<cword>')
-  let a:event['filepath'] = cells#util#FilePathFromFilename(a:event['filename'])
+  " let a:event['filepath'] = cells#util#FilePathFromFilename(a:event['filename'])
+  let a:event['filepath'] = expand('%:p')
   let a:event['line_split_at_cursor'] = [line[0: a:event.position[2]-2], line[a:event.position[2]:]]
   let a:event['offset'] = line2byte(line('.')) + col('.') - 1
   return a:event

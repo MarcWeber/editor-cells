@@ -1,6 +1,24 @@
 " some exapmle implementation.
 if !exists('g:cells') | let g:cells = {} | endif |let s:c = g:cells
 
+fun! cells#examples#TestCompletionManyColumns(cell) abort
+  " for testing various start columns when completing
+  let a:cell['completion-functions'] = get(a:cell, 'completion-functions', [])
+  fun! a:cell.l_completions(event)
+    let results = []
+    let left = a:event.event.line_split_at_cursor[0]
+    let l = len(left)
+    for col in range(1, l)
+      call add(results, {
+        \ 'column': col,
+        \ 'completions' : [{'word': left[col-1:].col , 'w': 0.5, 'kind': 'dummy'}]
+      \ })
+    endfor
+    call self.reply_now(a:event, results )
+  endf
+  return a:cell
+endf
+
 fun! cells#examples#TraitTestMappings(cell) abort
   fun! a:cell.l_mappings(event)
     let mappings = [
@@ -184,8 +202,8 @@ fun! cells#examples#TraitCompletionContext(cell) abort
 
     " fileptah regex , regex, function handling match results, comment
     let regexes_by_filepath = [
-        \ ['\%(\.js\)$'       , 'var\s\(\S\+\)\s', self.__first_match],
-        \ ['\.\%(js\|py\)$', '\%(function\|def\)\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__post_function_fun_args],
+        \ ['\.\%(js\|ts\)$'       , 'var\s\(\S\+\)\s', self.__first_match],
+        \ ['\.\%(js\|ts\|py\)$', '\%(function\|def\)\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__post_function_fun_args],
         \ ['\%(\.vim\)$', 'fun\S*!\?\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__post_function_vim],
         \ ['\%(\.vim\)$'      , 'let\s\(\S\+\)\s', self.__first_match],
         \ ['\%(\.vim\)$'      , 'for\s\+\(\S\+\)', self.__first_match],
@@ -243,10 +261,11 @@ fun! cells#examples#TraitCompletionContext(cell) abort
 
     let ext   = expand('%:e')
 
-    " things which you may use very often
+    " some keyword like ..
     if ext == 'py'
       if a:event.event.line_split_at_cursor[0] =~ '^i'
         call add(completions, {'w': 10, 'word': 'import ', 'kind': 'Context'})
+        call add(completions, {'w': 10, 'word': 'self. ', 'kind': 'Context'})
       endif
     endif
     if ext == 'php'
@@ -533,7 +552,7 @@ fun! cells#examples#TraitDefinitionsAndUsages(cell) abort
 endf
 
 
-fun! cells#examples#TraitTestMappings(cell) abort
+fun! cells#examples#TraitTestAsk(cell) abort
   " for debugging events
   call cells#traits#Ask(a:cell)
   fun! a:cell.ask_log(event) abort

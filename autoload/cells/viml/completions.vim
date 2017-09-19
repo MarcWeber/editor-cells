@@ -112,10 +112,10 @@ fun! cells#viml#completions#Trait(cell) abort
 
     for i in all
       let l = a:request.event.event.line_split_at_cursor[0]
-      let pref = l[column-1: i.column - len(l) - 3 ]
+      let pref = l[column-1: i.column - len(l) - 2 ]
       if pref != ""
         for c in i.completions
-          let c.abbrev = c.word
+          let c.abbr = c.word
           let c.word = pref. c.word
         endfor
       endif
