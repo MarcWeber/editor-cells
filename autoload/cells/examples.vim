@@ -178,13 +178,15 @@ fun! cells#examples#TraitCompletionContext(cell) abort
   endf
 
   fun! a:cell.__php_match_comma_list(words, match, w)
+    echom a:match[1]
     if a:match[1] != ''
       for x in split(substitute(a:match[1], '&', '', 'g'), '\s*,\s*')
+        let x = substitute(x, '\s*=.*$', '', '')
         let w = substitute(x, '\$', '', '')
+        " ($foo = 'bar') - drop default argument
         let a:words[w] = {'word': w, 'replacement': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'}
       endfor
     endif
-    echom string(a:words)
   endf
 
   fun! a:cell.local_vars(linenr, plus, minus)
@@ -214,7 +216,7 @@ fun! cells#examples#TraitCompletionContext(cell) abort
         \ ['\%(\.php\)$'     , '\(\$\S\+\)\s*=', self.__php_match_all, " PHP assignment"], 
         \ ['\%(\.php\)$'     , 'use(\([^)]*\))', self.__php_match_comma_list, " PHP use(..)"], 
         \ ['\%(\.php\)$'     , 'function\s\+\([^( \t]\+(\)', self.__php_match_all, " PHP function name"], 
-        \ ['\%(\.php\)$'     , 'function(\([^)]*\))=', self.__php_match_comma_list, " PHP function args"], 
+        \ ['\%(\.php\)$'     , 'function\%(\s\+[^( \t]\+\s*\)(\([^)]*\))', self.__php_match_comma_list, " PHP function args"], 
         \ ['\%(\.php\)$'     , '\s\+as\s\+\([^ \t)]\+\)\%(\s*=>\s*\([^ \t)]\+\)\)\?', self.__php_match_all," PHP foreach" ] 
         \ ]
 

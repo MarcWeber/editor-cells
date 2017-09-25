@@ -173,13 +173,18 @@ VIM SAMPLE CONFIGURATION
     \ 'completing_cells': ['CompletionLocalVars', 'CompletionThisBuffer']
     \ })
 
+  " setup python network running within Vim requiruing Python3
+  let g:bridge_cell = cells#viml_py3_inside_vim#BridgeCell()
+
+  " language server node ipc (tested on linux only), running on Python
+  call g:bridge_cell.cell_new_by_name({'name': 'cells.asyncio.language_server_protocol_client.LanguageServerProtocolClient', 'args': [], 'kwargs': {'node_ipc': v:true, 'cmd': ['/run/current-system/sw/bin/node', '/pr/tasks/language-server/vscode-intelephense/client/server/server.js'], 'id': 'PHPCompletion'}})
+
   " Use Python's jedi completion only after . and after one char has been typed
   call add(g:cells.cells['CompletionAutoTrigger'].by_filetype, {
     \ 'filetype_pattern' : '.py$',
     \ 'when_regex_matches_current_line': '\.\w\+|',
     \ 'completing_cells': ['JediCompletion']
     \ })
-
 
   " As alternative map <s-space> to kick of completion provide by cell ids id1,
   " id2, or avoid completing_cells_selector to use all completion providers
@@ -789,6 +794,9 @@ TODO
 
   * Python rewrite all the ask with ask_ syntax see def __getattr__(self, name) in class Cell in py3/site-packages/cells/__init__.py
 
+  * CODOTO integration?
+
+  * logfiles, allow cells to broadcast logfile locations ..
 
 
 LANGUAGES AND SOLUTIONS
@@ -797,7 +805,8 @@ Maybe help me find out what really works for languages almost all cases.
 
   PHP:
     completion definition like features
-      crane -> testing, https://github.com/HvyIndustries/crane/issues/359
+      https://github.com/bmewburn/vscode-intelephense/tree/master/server
+      crane -> testing, https://github.com/HvyIndustries/crane/issues/359, doesn't seem to work that well, sry
       https://github.com/felixfbecker/php-language-server -> no completion on A::
       Eclim -> Has sometimes problem completing top level (null pointer Exception)
       https://github.com/lvht/phpcd.vim -> could'nt make it work for trivial cases such as $this in same class or file_put_contents
