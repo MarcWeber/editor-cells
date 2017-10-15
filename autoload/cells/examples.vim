@@ -167,26 +167,16 @@ fun! cells#examples#TraitCompletionContext(cell) abort
       endif
   endf
 
-  " prefix $
-  fun! a:cell.__php_match_all(words, match, w)
-    for match in a:match[1:]
-      if match == '' | continue | endif
-      let w = substitute(match, '\$', '', '')
-      let w = substitute(match, ' ', '', 'g')
-      let a:words[w] = {'word': w, 'replacement' : match, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'}
-    endfor
-  endf
-
   fun! a:cell.__php_match_comma_list(words, match, w)
-    echom a:match[1]
-    if a:match[1] != ''
-      for x in split(substitute(a:match[1], '&', '', 'g'), '\s*,\s*')
+    " each match can be a comma separated list, found vars will be prefixed by  $
+    for match in a:match[1:]
+      for x in split(substitute(match, '&', '', 'g'), '\s*,\s*')
         let x = substitute(x, '\s*=.*$', '', '')
         let w = substitute(x, '\$', '', '')
         " ($foo = 'bar') - drop default argument
         let a:words[w] = {'word': w, 'replacement': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'}
       endfor
-    endif
+    endfor
   endf
 
   fun! a:cell.local_vars(linenr, plus, minus)
@@ -213,11 +203,12 @@ fun! cells#examples#TraitCompletionContext(cell) abort
         \ ['\%(\.ts\|\.js\)$', '(\([^)]*\))\s*[=][>]\s*', self.__post_fun_args],
         \ ['\%(\.py\)$'      , '\(\w\+\%(\s*,\s*\w\+\)\?\)\s*=', self.__first_match_as_comma_list],
         \ ['\%(\.py\)$'      , 'for\s\+\(\w\+\%(\s*,\s*\w*\)*\)\s\+in\s', self.__first_match_as_comma_list],
-        \ ['\%(\.php\)$'     , '\(\$\S\+\)\s*=', self.__php_match_all, " PHP assignment"], 
+        \ ['\%(\.php\)$'     , '\(\$\S\+\)\s*=', self.__php_match_comma_list, " PHP assignment"], 
         \ ['\%(\.php\)$'     , 'use(\([^)]*\))', self.__php_match_comma_list, " PHP use(..)"], 
-        \ ['\%(\.php\)$'     , 'function\s\+\([^( \t]\+(\)', self.__php_match_all, " PHP function name"], 
-        \ ['\%(\.php\)$'     , 'function\%(\s\+[^( \t]\+\s*\)(\([^)]*\))', self.__php_match_comma_list, " PHP function args"], 
-        \ ['\%(\.php\)$'     , '\s\+as\s\+\([^ \t)]\+\)\%(\s*=>\s*\([^ \t)]\+\)\)\?', self.__php_match_all," PHP foreach" ] 
+        \ ['\%(\.php\)$'     , 'function\s\+\([^( \t]\+(\)', self.__first_match, " PHP function name"], 
+        \ ['\%(\.php\)$'     , 'function\%(\s\+[^( \t]*\s*\)(\([^)]*\))', self.__php_match_comma_list, " PHP function args"],
+        \ ['\%(\.php\)$'     , '\s\+as\s\+\([^ \t)]\+\)\%(\s*=>\s*\([^ \t)]\+\)\)\?', self.__php_match_comma_list," PHP foreach" ],
+        \ ['\%(\.php\)$'     , 'global\s\+\([^;]\+\);', self.__php_match_comma_list," PHP global" ] 
         \ ]
 
     let ext   = expand('%:e')

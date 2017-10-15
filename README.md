@@ -191,7 +191,8 @@ VIM SAMPLE CONFIGURATION
   " a completion id depends on your cells setup. See CompletionLastInsertedTexts as example.
   inoremap <s-space> <c-r>=call g:cells.emit({'type': 'complete', 'position': getpos('.'), 'limit': 20, 
     \ 'match_types' : ['prefix', 'ycm_like', 'camel_case_like', 'ignore_case', 'last_upper'],
-    \ 'completing_cells_selector' : {'ids': [id1, id2]}
+    \ 'completing_cells_selector' : {'ids': [id1, id2]},
+    \ 'completeopt' : 'menu,menuone,preview'
     \ })<cr>
 
   " See sample-vimrcs/* about how to integrate python cells
@@ -686,6 +687,8 @@ They may help you make decisions
 
 TODO
 ====
+  * completion triggered by key se toptions to select first hit
+
   * py3 switch to 'import logger' ?
 
   * language server client implementation
@@ -798,6 +801,12 @@ TODO
 
   * logfiles, allow cells to broadcast logfile locations ..
 
+  * language server support:
+     - for documentSymbol
+     - for messages
+     - refactoring (renaming)
+     - formatting
+
 
 LANGUAGES AND SOLUTIONS
 =========================
@@ -805,12 +814,16 @@ Maybe help me find out what really works for languages almost all cases.
 
   PHP:
     completion definition like features
-      https://github.com/bmewburn/vscode-intelephense/tree/master/server
+      intelephense -> testing, https://github.com/bmewburn/vscode-intelephense/tree/master/server
       crane -> testing, https://github.com/HvyIndustries/crane/issues/359, doesn't seem to work that well, sry
-      https://github.com/felixfbecker/php-language-server -> no completion on A::
-      Eclim -> Has sometimes problem completing top level (null pointer Exception)
+      felixfbecker -> https://github.com/felixfbecker/php-language-server -> no completion on A::
+      Eclim -> Has sometimes problem completing top level (null pointer Exception), slower than the node solutions
       https://github.com/lvht/phpcd.vim -> could'nt make it work for trivial cases such as $this in same class or file_put_contents
       https://github.com/padawan-php/padawan.vim -> didn't try yet
+
+  C/C++:
+    See YCM ..
+    GCC: https://www.phoronix.com/scan.php?page=news_item&px=GCC-LSP-Patch-Proposal ?
 
   typescript
     npm install typescript -> tsserver probably is the way to go
