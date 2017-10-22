@@ -141,13 +141,16 @@ fun! cells#viml#completions#Trait(cell) abort
 
     let s:c.current_completions = {'completions':  completions, 'column': column, 'pos': self.position}
 
+    let completeopt = get(a:request.event.event, 'completeopt', 'menu,menuone,noinsert,noselect,preview')
+
     if len(self.goto_mappings) > 0
       " call g:cells.emit({'type': 'mappings_changed', 'sender': self.id})
-      let nr = 0
+      let nr = 'noinsert' =~ completeopt ? 0 : 1
+      let offset = 'noinsert' =~ completeopt ? 0 : -1
       for x in self.goto_mappings
         if len(s:c.current_completions.completions) -1 < nr | break | endif
         let c = s:c.current_completions.completions[nr]
-        let c['abbr'] = get(c, 'abbr', get(c, 'word')).' ['.self.goto_mappings[nr].']'
+        let c['abbr'] = get(c, 'abbr', get(c, 'word')).' ['.self.goto_mappings[nr + offset].']'
         let nr += 1
       endfor
     endif
@@ -156,7 +159,7 @@ fun! cells#viml#completions#Trait(cell) abort
 
     if len(s:c.current_completions) == 0 | return | endif
 
-    exec 'set completeopt='.get(a:request.event.event, 'completeopt', 'menu,menuone,noinsert,noselect,preview')
+    exec 'set completeopt='.completeopt
     " try to be graceful - overwrite omnifunc temporarely
     let self.old_omnifunc = &omnifunc
     set omnifunc=cells#viml#completions#CompletionFunction

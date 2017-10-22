@@ -98,6 +98,7 @@ fun! cells#examples#TraitCompletionLastInsertedTexts(cell) abort " {{{
 
       " words from last inserted texts
       for w in self.__line_to_items(x)
+        if w == word_before_cursor | continue | endif " do not offer the word before cursor
         let words[w] = {'word': w, 'w': certainity, 'contexts': contexts1, 'kind' : 'last inserted word'}
       endfor
 
