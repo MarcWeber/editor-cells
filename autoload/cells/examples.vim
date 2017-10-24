@@ -126,6 +126,7 @@ fun! cells#examples#TraitCompletionContext(cell) abort
   " very fuzzy searching of important vars nearby the cursor which you're very
   " likely to be using ..
   " TODO: rewrite using Python ?
+  " TODO: refactor: split by language to make it much nicer
 
   call cells#traits#Ask(a:cell)
 
@@ -147,8 +148,8 @@ fun! cells#examples#TraitCompletionContext(cell) abort
       endfor
   endf
 
-  fun! a:cell.__post_fun_args(words, match, w)
-      for x in split(a:match[1], ',\s*')
+  fun! a:cell.__comma_list(words, match, w)
+      for x in split(a:match[1], '\s*,\s*')
         let a:words[x] = {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts' }
       endfor
   endf
@@ -172,10 +173,26 @@ fun! cells#examples#TraitCompletionContext(cell) abort
     " each match can be a comma separated list, found vars will be prefixed by  $
     for match in a:match[1:]
       for x in split(substitute(match, '&', '', 'g'), '\s*,\s*')
+        " ($foo = 'bar') - drop default argument
         let x = substitute(x, '\s*=.*$', '', '')
         let w = substitute(x, '\$', '', '')
-        " ($foo = 'bar') - drop default argument
         let a:words[w] = {'word': w, 'replacement': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'}
+      endfor
+    endfor
+  endf
+
+  fun! a:cell.__ruby_match_comma_list(words, match, w)
+    " each match can be a comma separated list, found vars will be prefixed by  $
+    for match in a:match[1:]
+      for x in split(substitute(match, '&', '', 'g'), '\s*,\s*')
+        let x = substitute(x, '\s*=.*$', '', '')
+        let w = substitute(x, '@@\|@\|\$', '', '')
+        " no global
+        let a:words[w] = {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'}
+        if x != w
+          " $ @ @@ var
+          let a:words[w] = {'word': w, 'replacement': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'}
+        endif
       endfor
     endfor
   endf
@@ -196,12 +213,12 @@ fun! cells#examples#TraitCompletionContext(cell) abort
     " fileptah regex , regex, function handling match results, comment
     let regexes_by_filepath = [
         \ ['\.\%(js\|ts\)$'       , 'var\s\(\S\+\)\s', self.__first_match],
-        \ ['\.\%(js\|ts\|py\)$', '\%(function\|def\)\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__post_function_fun_args],
+        \ ['\.\%(js\|ts\|py\)$', '\%(function\|def\)\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__comma_list],
         \ ['\%(\.vim\)$', 'fun\S*!\?\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__post_function_vim],
         \ ['\%(\.vim\)$'      , 'let\s\(\S\+\)\s', self.__first_match],
         \ ['\%(\.vim\)$'      , 'for\s\+\(\S\+\)', self.__first_match],
         \ ['\%(\.ts\)$'      , '\<\(\S\+\)(\([^)]*\)', self.__post_function_fun_args],
-        \ ['\%(\.ts\|\.js\)$', '(\([^)]*\))\s*[=][>]\s*', self.__post_fun_args],
+        \ ['\%(\.ts\|\.js\)$', '(\([^)]*\))\s*[=][>]\s*', self.__comma_list],
         \ ['\%(\.py\)$'      , '\(\w\+\%(\s*,\s*\w\+\)\?\)\s*=', self.__first_match_as_comma_list],
         \ ['\%(\.py\)$'      , 'for\s\+\(\w\+\%(\s*,\s*\w*\)*\)\s\+in\s', self.__first_match_as_comma_list],
         \ ['\%(\.php\)$'     , '\(\$\S\+\)\s*=', self.__php_match_comma_list, " PHP assignment"], 
@@ -209,7 +226,9 @@ fun! cells#examples#TraitCompletionContext(cell) abort
         \ ['\%(\.php\)$'     , 'function\s\+\([^( \t]\+(\)', self.__first_match, " PHP function name"], 
         \ ['\%(\.php\)$'     , 'function\%(\s\+[^( \t]*\s*\)(\([^)]*\))', self.__php_match_comma_list, " PHP function args"],
         \ ['\%(\.php\)$'     , '\s\+as\s\+\([^ \t)]\+\)\%(\s*=>\s*\([^ \t)]\+\)\)\?', self.__php_match_comma_list," PHP foreach" ],
-        \ ['\%(\.php\)$'     , 'global\s\+\([^;]\+\);', self.__php_match_comma_list," PHP global" ] 
+        \ ['\%(\.php\)$'     , 'global\s\+\([^;]\+\);', self.__php_match_comma_list," PHP global" ],
+        \ ['\%(\.rb\)$'     , '^\s*\([^=()]\{-}\)\s*=', self.__ruby_match_comma_list, " Ruby assignment with $ shortcut"], 
+        \ ['\%(\.rb\)$'     , '|\([^|]\+\)|', self.__ruby_match_comma_list, " Ruby block vars"], 
         \ ]
 
     let ext   = expand('%:e')
@@ -246,7 +265,7 @@ fun! cells#examples#TraitCompletionContext(cell) abort
 
     let word_before_cursor = matchstr(a:event.event.line_split_at_cursor[0], '\zs\w*$')
 
-    let words = self.local_vars(a:event.event.position[1], 300, 10)
+    let words = self.local_vars(a:event.event.position[1], 40, 200)
 
     let completions = cells#util#match_by_type2(values(words), word_before_cursor)
     for c in completions
