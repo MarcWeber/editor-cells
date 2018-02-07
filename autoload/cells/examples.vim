@@ -221,10 +221,11 @@ fun! cells#examples#TraitCompletionContext(cell) abort
         \ ['\%(\.ts\|\.js\)$', '(\([^)]*\))\s*[=][>]\s*', self.__comma_list],
         \ ['\%(\.py\)$'      , '\(\w\+\%(\s*,\s*\w\+\)\?\)\s*=', self.__first_match_as_comma_list],
         \ ['\%(\.py\)$'      , 'for\s\+\(\w\+\%(\s*,\s*\w*\)*\)\s\+in\s', self.__first_match_as_comma_list],
+        \ ['\%(\.py\)$'      , 'def\%(\s\+\S\+\)(\([^)]*\))', self.__first_match_as_comma_list],
         \ ['\%(\.php\)$'     , '\(\$\S\+\)\s*=', self.__php_match_comma_list, " PHP assignment"], 
         \ ['\%(\.php\)$'     , 'use(\([^)]*\))', self.__php_match_comma_list, " PHP use(..)"], 
         \ ['\%(\.php\)$'     , 'function\s\+\([^( \t]\+(\)', self.__first_match, " PHP function name"], 
-        \ ['\%(\.php\)$'     , 'function\%(\s\+[^( \t]*\s*\)(\([^)]*\))', self.__php_match_comma_list, " PHP function args"],
+        \ ['\%(\.php\)$'     , 'function\%(\s\+[^( \t]*\s*\)\?(\([^)]*\))', self.__php_match_comma_list, " PHP function args"],
         \ ['\%(\.php\)$'     , '\s\+as\s\+\([^ \t)]\+\)\%(\s*=>\s*\([^ \t)]\+\)\)\?', self.__php_match_comma_list," PHP foreach" ],
         \ ['\%(\.php\)$'     , 'global\s\+\([^;]\+\);', self.__php_match_comma_list," PHP global" ],
         \ ['\%(\.rb\)$'     , '^\s*\([^=()]\{-}\)\s*=', self.__ruby_match_comma_list, " Ruby assignment with $ shortcut"], 
@@ -245,8 +246,8 @@ fun! cells#examples#TraitCompletionContext(cell) abort
 
     while linenr >= min
       let line = getline(linenr)
-      let w = 10.0 - (abs(a:linenr - linenr) / 30)
-      if linenr > a:linenr | let w -=  4 | endif " below cursor is less likely
+      let w = 10.0 - (abs(a:linenr - linenr) * 1.0 / 30)
+      if linenr > a:linenr | let w -=  200 | endif " below cursor is less likely
 
       if (break_on_regex != '' && line =~  break_on_regex) || linenr < min | break | endif
 

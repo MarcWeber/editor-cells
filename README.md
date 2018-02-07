@@ -687,6 +687,8 @@ They may help you make decisions
 
 TODO
 ====
+  * switch files
+
   * completion triggered by key se toptions to select first hit
 
   * py3 switch to 'import logger' ?
