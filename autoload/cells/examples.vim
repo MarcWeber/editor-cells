@@ -132,25 +132,25 @@ fun! cells#examples#TraitCompletionContext(cell) abort
 
   fun! a:cell.__post_function_vim(words, match, w)
     if a:match[1] != ''
-      let a:words[a:match[1]] = {'word': a:match[1], 'w': a:w -0.1, 'contexts': ['local_var_like'], 'kind': 'Contexts'}
+      call add( a:words,  {'word': a:match[1], 'w': a:w -0.1, 'contexts': ['local_var_like'], 'kind': 'Contexts'})
     endif
     for x in split(a:match[2], ',\s*')
-      let a:words[x] = {'word': x, 'replacement': 'a:'.x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'}
+      call add( a:words,  {'word': x, 'replacement': 'a:'.x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'})
     endfor
   endf
 
   fun! a:cell.__post_function_fun_args(words, match, w)
       if a:match[1] != ''
-        let a:words[a:match[1]] = {'word': a:match[1], 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'}
+        call add( a:words,  {'word': a:match[1], 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'})
       endif
       for x in split(a:match[2], ',\s*')
-        let a:words[x] = {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts' }
+        call add( a:words,  {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts' })
       endfor
   endf
 
   fun! a:cell.__comma_list(words, match, w)
       for x in split(a:match[1], '\s*,\s*')
-        let a:words[x] = {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts' }
+        call add( a:words,  {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts' })
       endfor
   endf
 
@@ -158,14 +158,14 @@ fun! cells#examples#TraitCompletionContext(cell) abort
   fun! a:cell.__first_match_as_comma_list(words, match, w)
       if a:match[1] != ''
         for x in split(a:match[1], '\s*,\s*')
-          let a:words[x] = {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'}
+          call add( a:words,  {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'})
         endfor
       endif
   endf
 
   fun! a:cell.__first_match(words, match, w)
       if a:match[1] != ''
-        let a:words[a:match[1]] = {'word': a:match[1], 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'}
+        call add( a:words,  {'word': a:match[1], 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'})
       endif
   endf
 
@@ -176,7 +176,7 @@ fun! cells#examples#TraitCompletionContext(cell) abort
         " ($foo = 'bar') - drop default argument
         let x = substitute(x, '\s*=.*$', '', '')
         let w = substitute(x, '\$', '', '')
-        let a:words[w] = {'word': w, 'replacement': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'}
+        call add( a:words,  {'word': w, 'replacement': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'})
       endfor
     endfor
   endf
@@ -188,10 +188,10 @@ fun! cells#examples#TraitCompletionContext(cell) abort
         let x = substitute(x, '\s*=.*$', '', '')
         let w = substitute(x, '@@\|@\|\$', '', '')
         " no global
-        let a:words[w] = {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'}
+        call add( a:words,  {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'})
         if x != w
           " $ @ @@ var
-          let a:words[w] = {'word': w, 'replacement': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'}
+          call add( a:words,  {'word': w, 'replacement': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'})
         endif
       endfor
     endfor
@@ -242,7 +242,7 @@ fun! cells#examples#TraitCompletionContext(cell) abort
     let break_on_regex = get(break_on_regex_by_ext, ext, '')
 
     let regexes_by_filepath = filter(copy(regexes_by_filepath), 'bname =~ v:val[0]')
-    let words = {}
+    let words = []
 
     while linenr >= min
       let line = getline(linenr)
@@ -259,7 +259,16 @@ fun! cells#examples#TraitCompletionContext(cell) abort
       endfor
       let linenr -= 1
     endwhile
-    return words
+
+    let r = {}
+    for w in words
+      if has_key(r, w.word)
+        if w.w > r[w.word].w | let r[w.word] = w | endif
+      else
+        let r[w.word] = w
+      endif
+    endfor
+    return r
   endf
 
   fun! a:cell.l_completions(event)
