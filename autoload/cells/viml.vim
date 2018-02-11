@@ -231,6 +231,9 @@ fun! cells#viml#EditorCoreInterface() abort
       elseif type(command) == type({})
         if has_key(command, 'show_message')
           echom command.show_message
+        elseif has_key(command, 'save_as_tmp')
+          exec 'silent! w! '.fnameescape(command.save_as_tmp)
+          call add(results, "done")
         elseif has_key(command, 'lines_of_buf_id')
           " lines_of_buf_id % means current buffer
           call add(results, getbufline(a:event['lines_of_buf_id']), get(a:event, 'from_line', 1), get(a:event, 'to_line', line('$'))))

@@ -501,6 +501,7 @@ Example implementation for Vim see cells#viml#EditorCoreInterface()
     'editor_buffers'
     'lines_of_buf_id'
     {'set_current_line': 'line_contents'}
+    {'save_as_tmp': 'filename'}
 
 features:
   ['editor_bufopen', 'editor_bufclose', 'editor_buf_written', 'editor_buf_cursor_pos']
