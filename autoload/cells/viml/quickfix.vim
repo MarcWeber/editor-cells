@@ -29,7 +29,10 @@ fun! cells#viml#quickfix#Trait(cell) abort
         cclose
         echom 'quickfix available with warnings, use :cope to show'
       else
+        let b = winnr()
         cope
+        let c = winnr('$')
+        exec ((b+c - winnr()) % c).'wincmd w'
       endif
     elseif has_key(result, 'cfile')
       exec 'set efm='. result.errorformat

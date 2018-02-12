@@ -233,7 +233,7 @@ fun! cells#viml#EditorCoreInterface() abort
         if has_key(command, 'show_message')
           echom command.show_message
         elseif has_key(command, 'save_as_tmp')
-          exec 'w! '.fnameescape(command.save_as_tmp)
+          let ei=&ei| set ei=all| exec 'silent! w! '.fnameescape(g:to_vim) | exec 'set ei='.ei
           call add(results, "done")
         elseif has_key(command, 'lines_of_buf_id')
           " lines_of_buf_id % means current buffer
