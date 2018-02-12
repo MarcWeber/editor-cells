@@ -429,10 +429,6 @@ column: atways from 1
 {' 'type': 'ftdetect' }
 => reply 'js' or such
   
-# cell events core editor events
-{ 'type': 'bufenter', 'bufnr': .., 'filepath': .. } # au trigger: BufEnter
-{ 'type': 'bufnew', 'bufnr': .., 'filepath': .. }   # au triggers: BufNewFile,BufRead
-{ 'type': 'filetype', 'bufnr': .., 'filepath': .. } # ....
 
 # cell events mappings
 A cell just tells "I have mappings to be mapped" using the mappings_changed event.
@@ -508,7 +504,7 @@ features:
    {"type': 'editor_bufnew',     'bufid': <bufid>, 'filename': .., 'filepath':}
    {"type': 'editor_bufread',     'bufid': <bufid>, 'filename': .., 'filepath':}
    {"type': 'editor_bufclose',    'bufid': <bufid>, 'filename': .., 'filepath':}
-   {"type': 'editor_buf_written', 'bufid': <bufid>, 'filename': .., 'filepath':}
+   {"type': 'editor_bufwritepost', 'bufid': <bufid>, 'filename': .., 'filepath':}
    {"type': 'editor_buf_changed', 'bufid': <bufid>, 'filename': .., 'filepath':}
    # {"type': 'buf_cursor_pos',     'bufid': <bufid>, 'filename': .., 'filepath':} TODO
 
@@ -648,10 +644,12 @@ CONCEPTS > MAPPINGS & SIGNS
 =======================================================
 See above
 
-CONCEPTS > PROJECT
-===================
+CONCEPTS > PROJECT (its fuzzy - is it worth keeping?)
+=======================================================
 See project_files
 List files belonging to project
+
+l_error -> return errors for buffer or project
 
 CONCEPTS > COMPLETIONS
 ==============================

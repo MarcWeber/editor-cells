@@ -14,7 +14,7 @@ fun! cells#viml#signs#Trait(cell) abort
       call add(ask, cells#viml#signs#BufData(bufnr))
     endfor
 
-    " if asking for all and refreshing all a good idea? signs move with
+    " If asking for all and refreshing all a good idea? signs move with
     " content. If one source changes, probably only that should be updated.
     " See quickfix_list implemenation below
     call self.update_buffers(ask)

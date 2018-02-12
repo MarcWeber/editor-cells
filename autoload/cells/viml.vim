@@ -173,10 +173,11 @@ fun! cells#viml#EditorCoreInterface() abort
 
   augroup CELLS_VIM8_CORE_EVENTS
   au!
-  exec 'au BufNew    * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufnew",    "bufid": bufnr("%"), "filename": bufname("%")})'
-  exec 'au BufRead   * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufread",   "bufid": bufnr("%"), "filename": bufname("%")})'
-  exec 'au BufEnter  * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufenter",  "bufid": bufnr("%"), "filename": bufname("%")})'
-  exec 'au BufUnload * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufunload", "bufid": bufnr("%"), "filename": bufname("%")})'
+  exec 'au BufNew    * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufnew",    "bufid": bufnr("%"), "filename": bufname("%"), "filepath": expand("%:p")})'
+  exec 'au BufRead   * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufread",   "bufid": bufnr("%"), "filename": bufname("%"), "filepath": expand("%:p")})'
+  exec 'au BufEnter  * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufenter",  "bufid": bufnr("%"), "filename": bufname("%"), "filepath": expand("%:p")})'
+  exec 'au BufWritePost  * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufwritepost",  "bufid": bufnr("%"), "filename": bufname("%"), "filepath": expand("%:p")})'
+  exec 'au BufUnload * call g:cells.cells['. string(c.id) .'].__emit_buffer_event({"type": "editor_bufunload", "bufid": bufnr("%"), "filename": bufname("%"), "filepath": expand("%:p")})'
   exec 'au CursorMovedI,BufEnter * call g:cells.cells['. string(c.id) .'].__cursor_moved()'
   augroup end
 
@@ -232,7 +233,7 @@ fun! cells#viml#EditorCoreInterface() abort
         if has_key(command, 'show_message')
           echom command.show_message
         elseif has_key(command, 'save_as_tmp')
-          exec 'silent! w! '.fnameescape(command.save_as_tmp)
+          exec 'w! '.fnameescape(command.save_as_tmp)
           call add(results, "done")
         elseif has_key(command, 'lines_of_buf_id')
           " lines_of_buf_id % means current buffer
@@ -252,19 +253,20 @@ fun! cells#viml#EditorCoreInterface() abort
 
   fun! c.__emit_buffer_event(event_data)
     let a:event_data.filepath = cells#util#FilePathFromFilename(a:event_data.filename)
-    let a:event_data.selector = {'ids': filter(keys(self.subscriptions), 'has_key(self.subscriptions[v:val], a:event_data.type)') }
+    " sending events always is almost as cheap as having a selector, so just send those rare events always
+    " let a:event_data.selector = {'ids': filter(keys(self.subscriptions), 'has_key(self.subscriptions[v:val], a:event_data.type)') }
     call g:cells.emit(a:event_data)
   endf
 
   let c.subscriptions = {}
 
   fun! c.l_editor_features(event)
-    call self.reply_now(a:event, ['editor_bufnew', 'editor_bufread', 'editor_bufunload', 'editor_bufenter'])
+    call self.reply_now(a:event, ['editor_bufnew', 'editor_bufread', 'editor_bufunload', 'editor_bufenter', 'editor_bufwritepost'])
   endf
 
-  fun! c.l_editor_subscribe(event)
-    let self.subscriptions[a:event.sender] = event['subscriptions']
-  endf
+  " fun! c.l_editor_subscribe(event)
+  "   let self.subscriptions[a:event.sender] = event['subscriptions']
+  " endf
 
   fun! c.l_cell_list(event)
     call self.async_reply(map(copy(cells#viml#CellsBySelector(get(a:event, 'selector', 'all'))), 'v:val.id'))
