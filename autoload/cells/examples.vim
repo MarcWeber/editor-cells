@@ -130,74 +130,74 @@ fun! cells#examples#TraitCompletionContext(cell) abort
 
   call cells#traits#Ask(a:cell)
 
-  fun! a:cell.__post_function_vim(words, match, w)
+  fun! a:cell.__post_function_vim(words, match, w, line)
     if a:match[1] != ''
-      call add( a:words,  {'word': a:match[1], 'w': a:w -0.1, 'contexts': ['local_var_like'], 'kind': 'Contexts'})
+      call add( a:words,  {'word': a:match[1], 'w': a:w -0.1, 'contexts': ['local_var_like'], 'kind': 'Contexts A '.a:line})
     endif
     for x in split(a:match[2], ',\s*')
       call add( a:words,  {'word': x, 'replacement': 'a:'.x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'})
     endfor
   endf
 
-  fun! a:cell.__post_function_fun_args(words, match, w)
+  fun! a:cell.__post_function_fun_args(words, match, w, line)
       if a:match[1] != ''
-        call add( a:words,  {'word': a:match[1], 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'})
+        call add( a:words,  {'word': a:match[1], 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts B'.a:line})
       endif
       for x in split(a:match[2], ',\s*')
-        call add( a:words,  {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts' })
+        call add( a:words,  {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts C'.a:line })
       endfor
   endf
 
-  fun! a:cell.__comma_list(words, match, w)
+  fun! a:cell.__comma_list(words, match, w, line)
       for x in split(a:match[1], '\s*,\s*')
-        call add( a:words,  {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts' })
+        call add( a:words,  {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts D'.a:line })
       endfor
   endf
 
   " python like x, b = [a,b]
-  fun! a:cell.__first_match_as_comma_list(words, match, w)
+  fun! a:cell.__first_match_as_comma_list(words, match, w, line)
       if a:match[1] != ''
         for x in split(a:match[1], '\s*,\s*')
-          call add( a:words,  {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'})
+          call add( a:words,  {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts E'.a:line})
         endfor
       endif
   endf
 
-  fun! a:cell.__first_match(words, match, w)
+  fun! a:cell.__first_match(words, match, w, line)
       if a:match[1] != ''
-        call add( a:words,  {'word': a:match[1], 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'})
+        call add( a:words,  {'word': a:match[1], 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts F'.a:line})
       endif
   endf
 
-  fun! a:cell.__php_match_comma_list(words, match, w)
+  fun! a:cell.__php_match_comma_list(words, match, w, line)
     " each match can be a comma separated list, found vars will be prefixed by  $
     for match in a:match[1:]
       for x in split(substitute(match, '&', '', 'g'), '\s*,\s*')
         " ($foo = 'bar') - drop default argument
         let x = substitute(x, '\s*=.*$', '', '')
         let w = substitute(x, '\$', '', '')
-        call add( a:words,  {'word': w, 'replacement': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'})
+        call add( a:words,  {'word': w, 'replacement': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts G'.a:line})
       endfor
     endfor
   endf
 
-  fun! a:cell.__ruby_match_comma_list(words, match, w)
+  fun! a:cell.__ruby_match_comma_list(words, match, w, line) abort
     " each match can be a comma separated list, found vars will be prefixed by  $
     for match in a:match[1:]
       for x in split(substitute(match, '&', '', 'g'), '\s*,\s*')
         let x = substitute(x, '\s*=.*$', '', '')
         let w = substitute(x, '@@\|@\|\$', '', '')
         " no global
-        call add( a:words,  {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'})
+        call add( a:words,  {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts H'.a:line})
         if x != w
           " $ @ @@ var
-          call add( a:words,  {'word': w, 'replacement': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts'})
+          call add( a:words,  {'word': w, 'replacement': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts I'.a:line})
         endif
       endfor
     endfor
   endf
 
-  fun! a:cell.local_vars(linenr, plus, minus)
+  fun! a:cell.local_vars(linenr, plus, minus) abort
     let words = {}
     let linenr = 1
     let lines_max = 500
@@ -211,8 +211,11 @@ fun! cells#examples#TraitCompletionContext(cell) abort
     if min < 1 | let min = 1 | endif
 
     " fileptah regex , regex, function handling match results, comment
+    " repalce \S by \w or \k
     let regexes_by_filepath = [
         \ ['\.\%(js\|ts\)$'       , 'var\s\(\S\+\)\s', self.__first_match],
+        \ ['\.\%(ts\)$'       ,'\(\k\+\)\s*\(\s*:\s*\k*\s*\)?*=', self.__first_match],
+        \ ['\.\%(js\)$'       ,'\(\k\+\)\s*=[^=]', self.__first_match],
         \ ['\.\%(js\|ts\|py\)$', '\%(function\|def\)\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__comma_list],
         \ ['\%(\.vim\)$', 'fun\S*!\?\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__post_function_vim],
         \ ['\%(\.vim\)$'      , 'let\s\(\S\+\)\s', self.__first_match],
@@ -235,10 +238,13 @@ fun! cells#examples#TraitCompletionContext(cell) abort
     let ext   = expand('%:e')
     let bname = bufname('%')
 
-    let break_on_regex_by_ext = {
-          \ 'js' : '^function',
-          \ 'vim' : '^fun'
-          \ }
+    " let break_on_regex_by_ext = {
+    "       \ 'js' : '^function',
+    "       \ 'vim' : '^fun'
+    "       \ }
+    " break_on_regex_by_ext is not worth it for now
+    let break_on_regex_by_ext = {}
+
     let break_on_regex = get(break_on_regex_by_ext, ext, '')
 
     let regexes_by_filepath = filter(copy(regexes_by_filepath), 'bname =~ v:val[0]')
@@ -255,7 +261,7 @@ fun! cells#examples#TraitCompletionContext(cell) abort
         let match = matchlist(line, l[1])
         if len(match) == 0 | continue | endif
         " call helper function to turn matches into words
-        call call(l[2], [words, match, w], self)
+        call call(l[2], [words, match, w, linenr], self)
       endfor
       let linenr -= 1
     endwhile
@@ -271,7 +277,7 @@ fun! cells#examples#TraitCompletionContext(cell) abort
     return r
   endf
 
-  fun! a:cell.l_completions(event)
+  fun! a:cell.l_completions(event) abort
 
     let word_before_cursor = matchstr(a:event.event.line_split_at_cursor[0], '\zs\w*$')
 

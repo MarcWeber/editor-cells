@@ -12,6 +12,7 @@ Features supported:
   * signs
   * error lists
   * write using the language you know best (VimL/Python/..)
+  * watch logfiles for errors and load them (watch_cmd_erros) as from webpack --watch, or any similar tool
   * to be tried:
     Fit enough to implement client/server (browser) based support / no idea
     about how fast it would be.
