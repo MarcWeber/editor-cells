@@ -22,7 +22,7 @@ fun! cells#viml#quickfix#Trait(cell) abort
       let has_errors = 0
       let has_warnings = 0
       for x in result.list
-        type = get(x,'type','')
+        let type = get(x, 'type','')
         if type == 'E' | let has_errors = 1 | endif
         if type == 'W' | let has_warnings = 1 | endif
       endfor

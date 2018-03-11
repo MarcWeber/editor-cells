@@ -322,6 +322,7 @@ column: atways from 1
     'offset': byte offset in file
 
 <location_keys>:
+
     'filepath':
 
       'line':
