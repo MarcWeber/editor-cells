@@ -212,28 +212,27 @@ fun! cells#examples#TraitCompletionContext(cell) abort
 
     " fileptah regex , regex, function handling match results, comment
     " repalce \S by \w or \k
-    let regexes_by_filepath = [
-        \ ['\.\%(js\|ts\)$'       , 'var\s\(\S\+\)\s', self.__first_match],
-        \ ['\.\%(ts\)$'       ,'\(\k\+\)\s*\(\s*:\s*\k*\s*\)?*=', self.__first_match],
-        \ ['\.\%(js\)$'       ,'\(\k\+\)\s*=[^=]', self.__first_match],
-        \ ['\.\%(js\|ts\|py\)$', '\%(function\|def\)\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__comma_list],
-        \ ['\%(\.vim\)$', 'fun\S*!\?\%(\s\+\(\S\+\)\)\?(\([^)]*\))', self.__post_function_vim],
-        \ ['\%(\.vim\)$'      , 'let\s\(\S\+\)\s', self.__first_match],
-        \ ['\%(\.vim\)$'      , 'for\s\+\(\S\+\)', self.__first_match],
-        \ ['\%(\.ts\)$'      , '\<\(\S\+\)(\([^)]*\)', self.__post_function_fun_args],
-        \ ['\%(\.ts\|\.js\)$', '(\([^)]*\))\s*[=][>]\s*', self.__comma_list],
-        \ ['\%(\.py\)$'      , '\(\w\+\%(\s*,\s*\w\+\)\?\)\s*=', self.__first_match_as_comma_list],
-        \ ['\%(\.py\)$'      , 'for\s\+\(\w\+\%(\s*,\s*\w*\)*\)\s\+in\s', self.__first_match_as_comma_list],
-        \ ['\%(\.py\)$'      , 'def\%(\s\+\S\+\)(\([^)]*\))', self.__first_match_as_comma_list],
-        \ ['\%(\.php\)$'     , '\(\$\S\+\)\s*=', self.__php_match_comma_list, " PHP assignment"], 
-        \ ['\%(\.php\)$'     , 'use(\([^)]*\))', self.__php_match_comma_list, " PHP use(..)"], 
-        \ ['\%(\.php\)$'     , 'function\s\+\([^( \t]\+(\)', self.__first_match, " PHP function name"], 
-        \ ['\%(\.php\)$'     , 'function\%(\s\+[^( \t]*\s*\)\?(\([^)]*\))', self.__php_match_comma_list, " PHP function args"],
-        \ ['\%(\.php\)$'     , '\s\+as\s\+\([^ \t)]\+\)\%(\s*=>\s*\([^ \t)]\+\)\)\?', self.__php_match_comma_list," PHP foreach" ],
-        \ ['\%(\.php\)$'     , 'global\s\+\([^;]\+\);', self.__php_match_comma_list," PHP global" ],
-        \ ['\%(\.rb\)$'     , '^\s*\([^=()]\{-}\)\s*=', self.__ruby_match_comma_list, " Ruby assignment with $ shortcut"], 
-        \ ['\%(\.rb\)$'     , '|\([^|]\+\)|', self.__ruby_match_comma_list, " Ruby block vars"], 
-        \ ]
+    let regexes_by_filepath = []
+    call add(regexes_by_filepath, {'file_pattern': '\.\%(js\|ts\)$'       , 'regex': 'var\s\(\S\+\)\s', 'match_fun' : self.__first_match})
+    call add(regexes_by_filepath, {'file_pattern': '\.\%(ts\)$'       , 'regex': '\(\k\+\)\s*\(\s*:\s*\k*\s*\)?*=', 'match_fun':  self.__first_match})
+    call add(regexes_by_filepath, {'file_pattern': '\.\%(js\)$'       , 'regex': '\(\k\+\)\s*=[^=]', 'match_fun': self.__first_match})
+    call add(regexes_by_filepath, {'file_pattern': '\.\%(js\|ts\|py\)$', 'regex': '\%(function\|def\)\%(\s\+\(\S\+\)\)\?(\([^)]*\))', 'match_fun': self.__comma_list, 'w_factor': 1.1})
+    call add(regexes_by_filepath, {'file_pattern': '\%(\.vim\)$', 'regex': 'fun\S*!\?\%(\s\+\(\S\+\)\)\?(\([^)]*\))', 'match_fun': self.__post_function_vim})
+    call add(regexes_by_filepath, {'file_pattern': '\%(\.vim\)$'      , 'regex': 'let\s\(\S\+\)\s', 'match_fun': self.__first_match})
+    call add(regexes_by_filepath, {'file_pattern': '\%(\.vim\)$'      , 'regex': 'for\s\+\(\S\+\)', 'match_fun': self.__first_match})
+    call add(regexes_by_filepath, {'file_pattern': '\%(\.ts\)$'      , 'regex': '\<\(\S\+\)(\([^)]*\)', 'match_fun': self.__post_function_fun_args})
+    call add(regexes_by_filepath, {'file_pattern': '\%(\.ts\|\.js\)$', 'regex': '(\([^)]*\))\s*[=][>]\s*', 'match_fun': self.__comma_list})
+    call add(regexes_by_filepath, {'file_pattern': '\%(\.py\)$'      , 'regex': '\(\w\+\%(\s*, \s*\w\+\)\?\)\s*=','match_fun': self.__first_match_as_comma_list})
+    call add(regexes_by_filepath, {'file_pattern': '\%(\.py\)$'      , 'regex': 'for\s\+\(\w\+\%(\s*, \s*\w*\)*\)\s\+in\s', 'match_fun': self.__first_match_as_comma_list})
+    call add(regexes_by_filepath, {'file_pattern': '\%(\.py\)$'      , 'regex': 'def\%(\s\+\S\+\)(\([^)]*\))', 'match_fun': self.__first_match_as_comma_list})
+    call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': '\(\$\S\+\)\s*=', 'match_fun': self.__php_match_comma_list, 'comment': " PHP assignment"})
+    call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': 'use(\([^)]*\))', 'match_fun': self.__php_match_comma_list, 'comment': "PHP use(..)"})
+    call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': 'function\s\+\([^( \t]\+(\)', 'match_fun': self.__first_match, 'comment': " PHP function name"})
+    call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': 'function\%(\s\+[^( \t]*\s*\)\?(\([^)]*\))', 'match_fun': self.__php_match_comma_list, 'comment': " PHP function args"})
+    call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': '\s\+as\s\+\([^ \t)]\+\)\%(\s*=>\s*\([^ \t)]\+\)\)\?', 'match_fun': self.__php_match_comma_list,'comment': "PHP foreach" })
+    call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': 'global\s\+\([^;]\+\);', 'match_fun': self.__php_match_comma_list,'comment': "PHP global" })
+    call add(regexes_by_filepath, {'file_pattern': '\%(\.rb\)$'     , 'regex': '^\s*\([^=()]\{-}\)\s*=', 'match_fun': self.__ruby_match_comma_list,'comment': " Ruby assignment with $ shortcut"})
+    call add(regexes_by_filepath, {'file_pattern': '\%(\.rb\)$'     , 'regex': '|\([^|]\+\)|', 'match_fun': self.__ruby_match_comma_list,'comment': " Ruby block vars"})
 
     let ext   = expand('%:e')
     let bname = bufname('%')
@@ -247,7 +246,7 @@ fun! cells#examples#TraitCompletionContext(cell) abort
 
     let break_on_regex = get(break_on_regex_by_ext, ext, '')
 
-    let regexes_by_filepath = filter(copy(regexes_by_filepath), 'bname =~ v:val[0]')
+    let regexes_by_filepath = filter(copy(regexes_by_filepath), 'bname =~ v:val["file_pattern"]')
     let words = []
 
     while linenr >= min
@@ -258,10 +257,10 @@ fun! cells#examples#TraitCompletionContext(cell) abort
       if (break_on_regex != '' && line =~  break_on_regex) || linenr < min | break | endif
 
       for l in regexes_by_filepath
-        let match = matchlist(line, l[1])
+        let match = matchlist(line, l['regex'])
         if len(match) == 0 | continue | endif
         " call helper function to turn matches into words
-        call call(l[2], [words, match, w, linenr], self)
+        call call(l['match_fun'], [words, match, w * get(l, 'w_factor', 1), linenr], self)
       endfor
       let linenr -= 1
     endwhile
