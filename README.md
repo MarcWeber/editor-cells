@@ -688,6 +688,11 @@ They may help you make decisions
 
 TODO
 ====
+  * While the word completion already works, add 'topics', like local var, local var with key, ..
+    to make it easier to hit exactly what you're looking for.
+
+    Current words in buffer also hit $foo['abc'] which often is nice, but not always.
+
   * switch files
 
   * completion triggered by key se toptions to select first hit

@@ -149,9 +149,9 @@ fun! cells#examples#TraitCompletionContext(cell) abort
   endf
 
   fun! a:cell.__comma_list(words, match, w, line)
-      for x in split(a:match[1], '\s*,\s*')
-        call add( a:words,  {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts D'.a:line })
-      endfor
+    for x in split(a:match[1], '\s*,\s*')
+      call add( a:words,  {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts D'.a:line })
+    endfor
   endf
 
   " python like x, b = [a,b]
@@ -216,7 +216,7 @@ fun! cells#examples#TraitCompletionContext(cell) abort
     call add(regexes_by_filepath, {'file_pattern': '\.\%(js\|ts\)$'       , 'regex': 'var\s\(\S\+\)\s', 'match_fun' : self.__first_match})
     call add(regexes_by_filepath, {'file_pattern': '\.\%(ts\)$'       , 'regex': '\(\k\+\)\s*\(\s*:\s*\k*\s*\)?*=', 'match_fun':  self.__first_match})
     call add(regexes_by_filepath, {'file_pattern': '\.\%(js\)$'       , 'regex': '\(\k\+\)\s*=[^=]', 'match_fun': self.__first_match})
-    call add(regexes_by_filepath, {'file_pattern': '\.\%(js\|ts\|py\)$', 'regex': '\%(function\|def\)\%(\s\+\(\S\+\)\)\?(\([^)]*\))', 'match_fun': self.__comma_list, 'w_factor': 1.1})
+    call add(regexes_by_filepath, {'file_pattern': '\.\%(js\|ts\|py\|rb\)$', 'regex': '\%(function\|def\)\%(\s\+\(\S\+\)\)\?(\([^)]*\))', 'match_fun': self.__post_function_fun_args, 'w_factor': 1.1})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.vim\)$', 'regex': 'fun\S*!\?\%(\s\+\(\S\+\)\)\?(\([^)]*\))', 'match_fun': self.__post_function_vim})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.vim\)$'      , 'regex': 'let\s\(\S\+\)\s', 'match_fun': self.__first_match})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.vim\)$'      , 'regex': 'for\s\+\(\S\+\)', 'match_fun': self.__first_match})
@@ -273,6 +273,8 @@ fun! cells#examples#TraitCompletionContext(cell) abort
         let r[w.word] = w
       endif
     endfor
+
+
     return r
   endf
 

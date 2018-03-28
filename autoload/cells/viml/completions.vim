@@ -121,6 +121,8 @@ fun! cells#viml#completions#Trait(cell) abort
       endif
 
       for c in i.completions
+        " filter out one char matches, you don't need completion for them
+        if len(c.word) == 1 | let c.w = 0.1 | endif " very unlikely that you want to complete one char stuff
         if !has_key(c, 'w') | let c.w = 1 | endif
         if ! has_key(completions, c.word) || cells#viml#completions#Compare(c, completions[c.word]) < 0
           let completions[c.word] = c
