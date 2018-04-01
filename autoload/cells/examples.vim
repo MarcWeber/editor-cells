@@ -216,6 +216,7 @@ fun! cells#examples#TraitCompletionContext(cell) abort
     call add(regexes_by_filepath, {'file_pattern': '\.\%(js\|ts\)$'       , 'regex': 'var\s\(\S\+\)\s', 'match_fun' : self.__first_match})
     call add(regexes_by_filepath, {'file_pattern': '\.\%(ts\)$'       , 'regex': '\(\k\+\)\s*\(\s*:\s*\k*\s*\)?*=', 'match_fun':  self.__first_match})
     call add(regexes_by_filepath, {'file_pattern': '\.\%(js\)$'       , 'regex': '\(\k\+\)\s*=[^=]', 'match_fun': self.__first_match})
+    call add(regexes_by_filepath, {'file_pattern': '\.\%(rb\|py\)$'       , 'regex': '\(\k\+\%(\s*,\s*\k\+\)*\)\s*=[^=]', 'match_fun': self.__comma_list, 'comment': 'assign vars maybe separated by comma'})
     call add(regexes_by_filepath, {'file_pattern': '\.\%(js\|ts\|py\|rb\)$', 'regex': '\%(function\|def\)\%(\s\+\(\S\+\)\)\?(\([^)]*\))', 'match_fun': self.__post_function_fun_args, 'w_factor': 1.1})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.vim\)$', 'regex': 'fun\S*!\?\%(\s\+\(\S\+\)\)\?(\([^)]*\))', 'match_fun': self.__post_function_vim})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.vim\)$'      , 'regex': 'let\s\(\S\+\)\s', 'match_fun': self.__first_match})
