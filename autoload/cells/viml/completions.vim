@@ -95,7 +95,6 @@ fun! cells#viml#completions#Trait(cell) abort
     let event.position = get(a:event, 'position', getpos('.'))
     let self.position = event.position
     let event = cells#viml#completions#EventData(event)
-    call writefile([json_encode({'type': 'completions', 'event': event, 'selector': get(a:event, 'completing_cells_selector', 'all')})], '/tmp/json' )
     call self.cancel_ask('completions_received', {'type': 'completions', 'event': event, 'selector': get(a:event, 'completing_cells_selector', 'all')})
   endf
 

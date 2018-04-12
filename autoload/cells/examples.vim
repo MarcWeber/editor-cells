@@ -233,7 +233,7 @@ fun! cells#examples#TraitCompletionContext(cell) abort
     call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': 'function\%(\s\+[^( \t]*\s*\)\?(\([^)]*\))', 'match_fun': self.__php_match_comma_list, 'comment': " PHP function args"})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': '\s\+as\s\+\([^ \t)]\+\)\%(\s*=>\s*\([^ \t)]\+\)\)\?', 'match_fun': self.__php_match_comma_list,'comment': "PHP foreach" })
     call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': 'global\s\+\([^;]\+\);', 'match_fun': self.__php_match_comma_list,'comment': "PHP global" })
-    call add(regexes_by_filepath, {'file_pattern': '\%(\.rb\)$'     , 'regex': '^\s*\([^=()]\{-}\)\s*\%(||\)=', 'match_fun': self.__ruby_match_comma_list,'comment': " Ruby assignment with $ shortcut"})
+    call add(regexes_by_filepath, {'file_pattern': '\%(\.rb\)$'     , 'regex': '^\s*\([^=()]\{-}\)\s*\%(||\)\?=', 'match_fun': self.__ruby_match_comma_list,'comment': " Ruby assignment with $ shortcut"})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.rb\)$'     , 'regex': '|\([^|]\+\)|', 'match_fun': self.__ruby_match_comma_list,'comment': " Ruby block vars"})
 
     let ext   = expand('%:e')
