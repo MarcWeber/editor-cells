@@ -227,6 +227,7 @@ fun! cells#examples#TraitCompletionContext(cell) abort
     call add(regexes_by_filepath, {'file_pattern': '\%(\.py\)$'      , 'regex': 'for\s\+\(\w\+\%(\s*, \s*\w*\)*\)\s\+in\s', 'match_fun': self.__first_match_as_comma_list})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.py\)$'      , 'regex': 'def\%(\s\+\S\+\)(\([^)]*\))', 'match_fun': self.__first_match_as_comma_list})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.py\)$'      , 'regex': 'as\s\+\(\S\+\)', 'match_fun': self.__first_match})
+    call add(regexes_by_filepath, {'file_pattern': '\%(\.py\)$'      , 'regex': 'from\s\+\S\+\s\+import\s\+\(.*\)', 'match_fun': self.__comma_list})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': '\(\$\S\+\)\s*=', 'match_fun': self.__php_match_comma_list, 'comment': " PHP assignment"})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': 'use(\([^)]*\))', 'match_fun': self.__php_match_comma_list, 'comment': "PHP use(..)"})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': 'function\s\+\([^( \t]\+(\)', 'match_fun': self.__first_match, 'comment': " PHP function name"})
