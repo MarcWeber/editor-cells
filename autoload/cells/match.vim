@@ -18,7 +18,7 @@ endf
 
 fun! cells#match#MatchScoreFunction(word)
   let d = {}
-  let quoted = substitute(a:word, '\([@%=#)({*+]\)','[\1]' ,'g')
+  let quoted = substitute(a:word, '\([?@%=#)({*+]\)','[\1]' ,'g')
   let d.regex_camel_case_like = '^'.cells#util#CamelCaseLikeMatching(a:word)
   let d.regex_prefix = '^'. quoted
   let d.regex_ignore_case = '^\v'. quoted
