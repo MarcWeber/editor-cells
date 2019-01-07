@@ -127,6 +127,7 @@ fun! cells#examples#TraitCompletionContext(cell) abort
   " likely to be using ..
   " TODO: rewrite using Python ?
   " TODO: refactor: split by language to make it much nicer
+  " TODO: separate pieces such as 'function args' from regex (second match)
 
   call cells#traits#Ask(a:cell)
 
@@ -150,7 +151,8 @@ fun! cells#examples#TraitCompletionContext(cell) abort
 
   fun! a:cell.__comma_list(words, match, w, line)
     for x in split(a:match[1], '\s*,\s*')
-      call add( a:words,  {'word': x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts D'.a:line })
+      " split :  for ts foo:any like arguments
+      call add( a:words,  {'word': split(x, ':')[0], 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts D'.a:line })
     endfor
   endf
 
@@ -181,6 +183,17 @@ fun! cells#examples#TraitCompletionContext(cell) abort
     endfor
   endf
 
+
+  fun! a:cell.__sh_match_add_dollar(words, match, w, line)
+    " each match can be a comma separated list, found vars will be prefixed by  $
+    for match in a:match[1:]
+      for x in split(match, '\s*,\s*')
+        " ($foo = 'bar') - drop default argument
+        call add( a:words,  {'word': x, 'replacement': '$'.x, 'w': a:w, 'contexts': ['local_var_like'], 'kind': 'Contexts G'.a:line})
+      endfor
+    endfor
+  endf
+
   fun! a:cell.__ruby_match_comma_list(words, match, w, line) abort
     " each match can be a comma separated list, found vars will be prefixed by  $
     for match in a:match[1:]
@@ -198,7 +211,11 @@ fun! cells#examples#TraitCompletionContext(cell) abort
   endf
 
   fun! a:cell.local_vars(linenr, plus, minus) abort
-    let words = {}
+    " TODO this works awesome, but should be rewritten:
+    " refactor: importance by line distance, for each language own completion
+    " function or so so that you can mix match the way you want
+
+    let words = []
     let linenr = 1
     let lines_max = 500
 
@@ -207,8 +224,13 @@ fun! cells#examples#TraitCompletionContext(cell) abort
     let min = a:linenr - a:minus
     let linenr = a:linenr + a:plus
 
+    let bname = bufname('%')
+
     if linenr > line('$') | let linenr = line('$') | endif
     if min < 1 | let min = 1 | endif
+
+    " priority rules
+    " - arguments should be listed before function name
 
     " fileptah regex , regex, function handling match results, comment
     " repalce \S by \w or \k
@@ -231,15 +253,26 @@ fun! cells#examples#TraitCompletionContext(cell) abort
     call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': 'list(\([^)]\+\))\s*=', 'match_fun': self.__php_match_comma_list, 'comment': " PHP assignment list"})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': '\(\$\S\+\)\s*=', 'match_fun': self.__php_match_comma_list, 'comment': " PHP assignment"})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': 'use(\([^)]*\))', 'match_fun': self.__php_match_comma_list, 'comment': "PHP use(..)"})
-    call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': 'function\s\+\([^( \t]\+(\)', 'match_fun': self.__first_match, 'comment': " PHP function name"})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': 'function\%(\s\+[^( \t]*\s*\)\?(\([^)]*\))', 'match_fun': self.__php_match_comma_list, 'comment': " PHP function args"})
+    call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': 'function\s\+\([^( \t]\+(\)', 'match_fun': self.__first_match, 'comment': " PHP function name"})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': '\s\+as\s\+\([^ \t)]\+\)\%(\s*=>\s*\([^ \t)]\+\)\)\?', 'match_fun': self.__php_match_comma_list,'comment': "PHP foreach" })
     call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': 'global\s\+\([^;]\+\);', 'match_fun': self.__php_match_comma_list,'comment': "PHP global" })
     call add(regexes_by_filepath, {'file_pattern': '\%(\.rb\)$'     , 'regex': '^\s*\([^=()]\{-}\)\s*\%(||\)\?=', 'match_fun': self.__ruby_match_comma_list,'comment': " Ruby assignment with $ shortcut"})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.rb\)$'     , 'regex': '|\([^|]\+\)|', 'match_fun': self.__ruby_match_comma_list,'comment': " Ruby block vars"})
 
+    call add(regexes_by_filepath, {'file_pattern': '\%(\.sh\)$'     , 'regex': '\(\w\+\)(', 'match_fun': self.__first_match, 'comment': "sh functions"})
+    call add(regexes_by_filepath, {'file_pattern': '\%(\.sh\)$'     , 'regex': '\(\w\+\)=', 'match_fun': self.__sh_match_add_dollar, 'comment': "sh assignements / vars"})
+
+
+    if bname =~ '\%(\.sh\)$'
+      for line in split(system('export'), "\n")
+        let v = matchstr(line, '^\%(export\|declare -x \)\?\zs[^=]\+\ze=')
+        call add(words, {'word': v, 'contexts': ['shell env var'], 'kind': 'shell env var'})
+      endfor
+    endif
+
+    " TODO PHP preg_match_... $var like functions with output
     let ext   = expand('%:e')
-    let bname = bufname('%')
 
     " let break_on_regex_by_ext = {
     "       \ 'js' : '^function',
@@ -251,7 +284,6 @@ fun! cells#examples#TraitCompletionContext(cell) abort
     let break_on_regex = get(break_on_regex_by_ext, ext, '')
 
     let regexes_by_filepath = filter(copy(regexes_by_filepath), 'bname =~ v:val["file_pattern"]')
-    let words = []
 
     while linenr >= min
       let line = getline(linenr)
