@@ -870,3 +870,67 @@ and JS is browser ready, but others are type safe or faster.
 So .. - do what you want - but in a way others can reuse your work
 
 So use whatever you know best
+
+
+
+TODO:
+=====
+smart completion based on some chars.
+ig for (c -> means always const) -> so have special meta key to complete this kind of trivial shit
+
+
+EXAMPLES
+========
+fun TSCWatch() abort
+  call SetupCells()
+  let error_line_parsers = [
+        \         'cells.asyncio.error_line_parsers.line_parser_tsc',
+        \ ]
+  call g:bridge_cell.cell_new_by_name({'name': 'cells.asyncio.watch_cmd_errors.WatchCmdErrors', 'args': [], 'kwargs': {'id': 'py:external_process', 'new_run_regex': 'Watching forfile changes\.', 'cmd': 'tsc -w -p .', 'stdin_data': '', 'error_line_parsers' : error_line_parsers}})
+endf
+
+fun Fusebox_watch() abort
+  " add restart options
+    let load_cmd =  'load "foo.rb"\n'
+    let error_line_parsers = [
+    \         'cells.asyncio.error_line_parsers.line_parser_fusebox',
+    \ ]
+    call g:bridge_cell.cell_new_by_name({'name': 'cells.asyncio.watch_cmd_errors.WatchCmdErrors', 'args': [], 'kwargs': {'id': 'py:external_process', 'new_run_regex': '^-------------------------|^--- FuseBox ', 'cmd': 'node fuse.js', 'stdin_data': load_cmd, 'error_line_parsers' : error_line_parsers}})
+    nnoremap <F2> :call setqflist([])<bar>call cells.emit({'type': 'stdin_write', 'stdin_data': g:load_cmd, 'reset': true, 'selector': {"id": 'py:external_process'}})<cr>
+endf
+
+fun Webpack_watch() abort
+  let t = tempname()
+  call g:bridge_cell.cell_new_by_name({'name': 'cells.asyncio.watch_cmd_errors.Webpack_watch', 'args': [], 'kwargs': {'cmd': 'webpack --watch | tee '.t}})
+  echom 'webpack tmp is '.t
+endf
+fun TS() abort
+  call g:bridge_cell.cell_new_by_name({'name': 'cells.asyncio.tsserver.Tsserver', 'args': [], 'kwargs': {'connection_properties': {'cmd': 'tsserver'}}})
+  nnoremap <f4> :call g:cells.emit({'type': 'errors', 'filepath': expand('%:p')})<cr>
+  nnoremap <f5> :call g:cells.emit({'type': 'errors', 'for_filepaths': [expand('%:p')]})<cr>
+endf
+fun Jedi()
+  call g:bridge_cell.cell_new_by_name({'name': 'cells.asyncio.python_jedi.JediCompletion', 'args': [], 'kwargs': {'id': 'JediCompletion'}})
+endf
+fun Dart() abort
+  call g:bridge_cell.cell_new_by_name({'name': 'cells.asyncio.language_server_protocol_client_dart_language_server.LanguageServerProtocolClientDart', 'args': [], 'kwargs': {'cmd': 'dart_language_server --log-directory /tmp/dart-log', 'id': 'DartCompletion'}})
+endf
+fun Tern()
+  VAMActivate github:ternjs/tern_for_vim.git
+endf
+
+fun Tags()
+  call g:bridge_cell.cell_new_by_name({'name': 'cells.asyncio.examples.CompletionTAGS', 'args': [], 'kwargs': {}})
+endf
+" fun PHP() abort
+"   call g:bridge_cell.cell_new_by_name({'name': 'cells.asyncio.language_server_protocol_client_crane.LanguageServerProtocolClientCrane', 'args': [], 'kwargs': {'node_ipc': v:true, 'cmd': ['/run/current-system/sw/bin/node', '/pr/tasks/language-server/crane/client/server/server.js'], 'id': 'PHPCompletion'}})
+" endf
+" fun CSS() abort
+"   call g:bridge_cell.cell_new_by_name({'name': 'cells.asyncio.language_server_protocol_client.LanguageServerProtocolClient', 'args': [], 'kwargs': {'node_ipc': v:true, 'cmd': ['/run/current-system/sw/bin/node', '/pr/tasks/language-server/vscode-css-languageservice/lib/cssLanguageService.js'], 'id': 'CSSCompletion'}})
+" endf
+" fun HTML() abort
+"   call g:bridge_cell.cell_new_by_name({'name': 'cells.asyncio.language_server_protocol_client.LanguageServerProtocolClient', 'args': [], 'kwargs': {'node_ipc': v:true, 'cmd': ['/run/current-system/sw/bin/node', '/pr/tasks/language-server/vscode-html-languageservice/lib/htmlLanguageService.js'], 'id': 'CSSCompletion'}})
+" endf
+
+nnoremap \sct :call SetupCells()<bar>call TS()<bar>echom "typescript setup"<cr>
+nnoremap \sc :call SetupCells()<cr>

@@ -214,6 +214,9 @@ fun! cells#examples#TraitCompletionContext(cell) abort
     " TODO this works awesome, but should be rewritten:
     " refactor: importance by line distance, for each language own completion
     " function or so so that you can mix match the way you want
+    "
+    " TODO: refactor, go by filetype not by name, eg .sql with plv8 can
+    " contain JavaScript code
 
     let words = []
     let linenr = 1
@@ -235,7 +238,7 @@ fun! cells#examples#TraitCompletionContext(cell) abort
     " fileptah regex , regex, function handling match results, comment
     " repalce \S by \w or \k
     let regexes_by_filepath = []
-    call add(regexes_by_filepath, {'file_pattern': '\.\%(js\|ts\)$'       , 'regex': 'var\s\(\S\+\)\s', 'match_fun' : self.__first_match})
+    call add(regexes_by_filepath, {'file_pattern': '\.\%(js\|ts\)$'       , 'regex': '\%(var\|const\|let\)\s\(\S\+\)\s', 'match_fun' : self.__first_match})
     call add(regexes_by_filepath, {'file_pattern': '\.\%(ts\)$'       , 'regex': '\(\k\+\)\s*\(\s*:\s*\k*\s*\)?*=', 'match_fun':  self.__first_match})
     call add(regexes_by_filepath, {'file_pattern': '\.\%(js\)$'       , 'regex': '\(\k\+\)\s*=[^=]', 'match_fun': self.__first_match})
     call add(regexes_by_filepath, {'file_pattern': '\.\%(rb\|py\)$'       , 'regex': '\(\k\+\%(\s*,\s*\k\+\)*\)\s*=[^=]', 'match_fun': self.__comma_list, 'comment': 'assign vars maybe separated by comma'})
@@ -251,6 +254,7 @@ fun! cells#examples#TraitCompletionContext(cell) abort
     call add(regexes_by_filepath, {'file_pattern': '\%(\.py\)$'      , 'regex': 'as\s\+\(\S\+\)', 'match_fun': self.__first_match})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.py\)$'      , 'regex': 'from\s\+\S\+\s\+import\s\+\(.*\)', 'match_fun': self.__comma_list})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': 'list(\([^)]\+\))\s*=', 'match_fun': self.__php_match_comma_list, 'comment': " PHP assignment list"})
+
     call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': '\(\$\S\+\)\s*=', 'match_fun': self.__php_match_comma_list, 'comment': " PHP assignment"})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': 'use(\([^)]*\))', 'match_fun': self.__php_match_comma_list, 'comment': "PHP use(..)"})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.php\)$'     , 'regex': 'function\%(\s\+[^( \t]*\s*\)\?(\([^)]*\))', 'match_fun': self.__php_match_comma_list, 'comment': " PHP function args"})
