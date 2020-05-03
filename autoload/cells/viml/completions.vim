@@ -70,7 +70,7 @@ fun! cells#viml#completions#TraitAutoTrigger(cell) abort
   endf
 
   augroup start
-    " exec 'au CursorMovedI * call g:cells.cells['. string(a:cell.id) .'].trigger_completion()'
+    exec 'au CursorMovedI * call g:cells.cells['. string(a:cell.id) .'].trigger_completion()'
   augroup end
 
 endf
