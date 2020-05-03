@@ -247,6 +247,7 @@ fun! cells#examples#TraitCompletionContext(cell) abort
     call add(regexes_by_filepath, {'file_pattern': '\%(\.vim\)$'      , 'regex': 'let\s\(\S\+\)\s', 'match_fun': self.__first_match})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.vim\)$'      , 'regex': 'for\s\+\(\S\+\)', 'match_fun': self.__first_match})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.ts\)$'      , 'regex': '\<\(\S\+\)(\([^)]*\)', 'match_fun': self.__post_function_fun_args})
+    call add(regexes_by_filepath, {'file_pattern': '\%(\.ts\)$'      , 'regex': '\%(type\|interface\)\s\+\(\S\+\)', 'match_fun': self.__first_match})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.ts\|\.js\)$', 'regex': '(\([^)]*\))\s*[=][>]\s*', 'match_fun': self.__comma_list})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.py\)$'      , 'regex': '\(\w\+\%(\s*, \s*\w\+\)\?\)\s*=','match_fun': self.__first_match_as_comma_list})
     call add(regexes_by_filepath, {'file_pattern': '\%(\.py\)$'      , 'regex': 'for\s\+\(\w\+\%(\s*, \s*\w*\)*\)\s\+in\s', 'match_fun': self.__first_match_as_comma_list})

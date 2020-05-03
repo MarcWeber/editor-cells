@@ -23,8 +23,7 @@ fun! cells#viml#completions#TraitAutoTrigger(cell) abort
   " filetypes using completions
   " Example: use MyFastCompletion cell for completing everything after [a-z] before cursor
   " let cell = MyFastCompletion
-  " call cells#viml#Cell({'traits': ['cells#viml#completions#TraitAutoTrigger'], 'by_filetype':  {'filetype_pattern' : '.*', 'when_regex_matches_current_line': '[a-z]|',  'completing_cells': [cell.id] }})
- 
+  " call cells#viml#Cell({'traits': ['cells#viml#completions#TraitAutoTrigger'], 'by_filetype':  [{'filetype_regex' : '.*', 'when_regex_matches_current_line': '[a-z]|',  'completing_cells': [cell.id] }]})
   let a:cell.by_filetype = get(a:cell, 'by_filetype', [])
 
   let a:cell.limit = get(a:cell, 'limit', 10)
@@ -45,7 +44,7 @@ fun! cells#viml#completions#TraitAutoTrigger(cell) abort
     let cell_ids = []
     let bname = bufname('%')
     let active = filter(copy(self.by_filetype), 'cursor_line =~ v:val.when_regex_matches_current_line && ( (has_key(v:val,"filepath_regex") && bname =~ v:val.filepath_regex) || (has_key(v:val,"filetype_regex") && &filetype =~ v:val.filetype_regex) )')
-    let cell_ids = cells#util#Union(map(copy(active), 'v:val.completing_cells'))
+    let cell_ids = cells#util#Union(map(copy(active), 'get(v:val, "completing_cells", ["all"])'))
     if len(active) == 0 || len(cell_ids) == 0 | return | endif
     let trigger_wait_ms = min(map(copy(active), 'get(v:val, "trigger_wait_ms", self.trigger_wait_ms)'))
 
@@ -71,7 +70,7 @@ fun! cells#viml#completions#TraitAutoTrigger(cell) abort
   endf
 
   augroup start
-    exec 'au CursorMovedI * call g:cells.cells['. string(a:cell.id) .'].trigger_completion()'
+    " exec 'au CursorMovedI * call g:cells.cells['. string(a:cell.id) .'].trigger_completion()'
   augroup end
 
 endf

@@ -226,12 +226,16 @@ fun! cells#viml#EditorCoreInterface() abort
           silent noautocmd update
         elseif command == "buffers"
           call add(results, self.__editor_buffers())
+        elseif command == 'cursor_context'
+          call add(results, cells#util#CursorContext({'position': getpos('.')}))
         else
           throw "unknown command ".string(command)
         endif
       elseif type(command) == type({})
         if has_key(command, 'show_message')
           echom command.show_message
+        elseif has_key(command, 'show_error')
+          echom command.show_error
         elseif has_key(command, 'save_as_tmp')
           let ei=&ei| set ei=all| exec 'silent! w! '.fnameescape(g:to_vim) | exec 'set ei='.ei
           call add(results, "done")

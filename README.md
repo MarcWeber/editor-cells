@@ -500,6 +500,8 @@ Example implementation for Vim see cells#viml#EditorCoreInterface()
     'lines_of_buf_id'
     {'set_current_line': 'line_contents'}
     {'save_as_tmp': 'filename'}
+    {'show_message': 'text'}
+    {'eshow_rror': 'text'}
 
 features:
   ['editor_bufopen', 'editor_bufclose', 'editor_buf_written', 'editor_buf_cursor_pos']
@@ -508,6 +510,7 @@ features:
    {"type': 'editor_bufclose',    'bufid': <bufid>, 'filename': .., 'filepath':}
    {"type': 'editor_bufwritepost', 'bufid': <bufid>, 'filename': .., 'filepath':}
    {"type': 'editor_buf_changed', 'bufid': <bufid>, 'filename': .., 'filepath':}
+   {"type': 'cursor_context', 'bufid': <bufid>, 'filename': .., 'filepath':}  get current buffer info and cursor position.
    # {"type': 'buf_cursor_pos',     'bufid': <bufid>, 'filename': .., 'filepath':} TODO
 
 
