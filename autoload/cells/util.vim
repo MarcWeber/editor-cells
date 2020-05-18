@@ -165,7 +165,7 @@ fun! cells#util#CursorContext(event)
   let a:event['cword'] = expand('<cword>')
   " let a:event['filepath'] = cells#util#FilePathFromFilename(a:event['filename'])
   let a:event['filepath'] = expand('%:p')
-  let a:event['line_split_at_cursor'] = [line[0: a:event.position[2]-2], line[a:event.position[2]:]]
+  let a:event['line_split_at_cursor'] = [line[0: a:event.position[2]-2], line[a:event.position[2]-1:]]
   let a:event['offset'] = line2byte(line('.')) + col('.') - 1
   return a:event
 endf

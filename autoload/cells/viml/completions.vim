@@ -150,7 +150,14 @@ fun! cells#viml#completions#Trait(cell) abort
       for x in self.goto_mappings
         if len(s:c.current_completions.completions) -1 < nr | break | endif
         let c = s:c.current_completions.completions[nr]
-        let c['abbr'] = get(c, 'abbr', get(c, 'word')).' ['.self.goto_mappings[nr + offset].']'
+
+        let c['abbr'] = get(c, 'abbr', get(c, 'word'))
+        " .' ['.self.goto_mappings[nr + offset].']'
+        " the goto_mappings trigger work, but when items get added later or
+        " user types some chars order does no longer fit, thus no longer
+        " showing hint
+
+
         let nr += 1
       endfor
     endif

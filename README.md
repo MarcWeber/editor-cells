@@ -21,6 +21,10 @@ Combine reusable cells the way you want
 
 ![list of cells](https://github.com/MarcWeber/editor-cells/blob/master/Cells.md)
 
+ROADMAP / TODO
+==============
+... ?
+
 SHOTS / Videos
 ==============
 This gif animation shows python based completion taking distance to cursor into account.
@@ -174,6 +178,7 @@ VIM SAMPLE CONFIGURATION
     \ 'completing_cells': ['CompletionLocalVars', 'CompletionThisBuffer']
     \ })
 
+
   " setup python network running within Vim requiruing Python3
   let g:bridge_cell = cells#viml_py3_inside_vim#BridgeCell()
 
@@ -182,14 +187,15 @@ VIM SAMPLE CONFIGURATION
 
   " Use Python's jedi completion only after . and after one char has been typed
   call add(g:cells.cells['CompletionAutoTrigger'].by_filetype, {
-    \ 'filetype_pattern' : '.py$',
-    \ 'when_regex_matches_current_line': '\.\w\+|',
+    \ 'filepath_regex' : '\.py$',
+    \ 'when_regex_matches_current_line': '\w\+|\|\.|',
     \ 'completing_cells': ['JediCompletion']
     \ })
 
   " As alternative map <s-space> to kick of completion provide by cell ids id1,
   " id2, or avoid completing_cells_selector to use all completion providers
   " a completion id depends on your cells setup. See CompletionLastInsertedTexts as example.
+  " ids is optional
   inoremap <s-space> <c-r>=call g:cells.emit({'type': 'complete', 'position': getpos('.'), 'limit': 20, 
     \ 'match_types' : ['prefix', 'ycm_like', 'camel_case_like', 'ignore_case', 'last_upper'],
     \ 'completing_cells_selector' : {'ids': [id1, id2]},
@@ -236,7 +242,7 @@ Example cell
     call self.reply_now(a:event, <result>)
 
     " or if you want to reply later:
-    call add(a:wait_for, self.id) " notify that a reply will happen
+    call add(aevent.:wait_for, self.id) " notify that a reply will happen
     call self.async_reply(a:event, <result>) " send the reply
     call self.async_error(a:event, <error>) " send an error, because the asking cell is waiting for any reply
   endf
@@ -268,6 +274,19 @@ event replies, but is harder to setup because Python can wait for external
 stuff when execution control is handed back to Vim.
 
 See py3/* and sample-vimrcs/vimrc
+py3/site-packages/cells/asyncio/examples.py
+
+when defining listeners with def l_<NAME> .. return results by
+
+  to reply asynchronously (signal error by throwing exception)
+          await event['async_def_result'](self.id, self.__completions(event['event']))
+
+  to reply immediately
+          event['reply_now'](self.id, r)
+          event['reply_error_now'](self.id, ...)
+
+take care to call super's __init__ like to have it added to cell_collection
+        super(<YOUR_CLASS_NAME>, self).__init__(*args, **kwargs)
 
 class CompletionBasedOnFiles is a nice example illustrating about how
 to start to use asnyc functions to produce a reply which itself waits for
@@ -275,10 +294,13 @@ results from events (gather). ask_iter could be used to process results as they
 come in.
 
 Python 2.x without asyncio (for completness)
-No asyncio features -> see pyinline/*
-Seems to work fine from :py and :py builtin interpreter
-see sample-vimrcs/vimrc about how to set it up
-(TODO: update l_reply and ask code to look like Vim code)
+
+  No asyncio features -> see pyinline/*
+  Seems to work fine from :py and :py builtin interpreter
+  see sample-vimrcs/vimrc about how to set it up
+  (TODO: update l_reply and ask code to look like Vim code)
+
+  Probably will not be mantained
 
 Python Cells within Vim8
 --------------------
@@ -312,7 +334,7 @@ column: atways from 1
 
 <cursor_context>:
     "context_lines": []
-    'line_split_at_cursor':
+    'line_split_at_cursor': [left of cursor, right of cursor]
     'position': # see getpos('.')
     'limit': 500
     'filename': ,
@@ -325,8 +347,8 @@ column: atways from 1
 
     'filepath':
 
-      'line':
-      'col': (optional)
+      'line': (optional)
+      'col':  (optional)
     and or 
       'offset':
 
@@ -351,8 +373,8 @@ column: atways from 1
 { 'type': 'killed': sender: 'cell-id' } " if other cells might depend on a cell it can notify the other cells that it has been killed
 
 { 'type': 'definitions', <cursor_context> } -> [{'title', 'text': 'mulitiline text', 'kind': '', <location_keys>}]
-{ 'type': 'usages',    <cursor_context> } ->   [{'title', 'text': 'mulitiline text', 'kind': '', <location_keys>}]
-{ 'type': 'types',      <cursor_context> } ->  [{'text': 'mulitiline text', 'kind': '', <location_keys>}]
+{ 'type': 'usages',      <cursor_context> } -> [{'title', 'text': 'mulitiline text', 'kind': '', <location_keys>}]
+{ 'type': 'types',       <cursor_context> } -> [{'text': 'mulitiline text', 'kind': '', <location_keys>}]
 
 { 'type': 'error_markers_for_buf' } ->
 { 'type': 'error_markers_changed' } ->
@@ -909,8 +931,13 @@ fun Webpack_watch() abort
 endf
 fun TS() abort
   call g:bridge_cell.cell_new_by_name({'name': 'cells.asyncio.tsserver.Tsserver', 'args': [], 'kwargs': {'connection_properties': {'cmd': 'tsserver'}}})
+  call g:bridge_cell.cell_new_by_name({'name': 'cells.asyncio.js_cell.JSCell', 'args': [], 'kwargs': {}})
   nnoremap <f4> :call g:cells.emit({'type': 'errors', 'filepath': expand('%:p')})<cr>
   nnoremap <f5> :call g:cells.emit({'type': 'errors', 'for_filepaths': [expand('%:p')]})<cr>
+  nnoremap <f6> :call g:cells.emit({'type': 'showtype'})<cr>
+  nnoremap <f7> :call g:cells.emit({'type': 'fix_error'})<cr>
+  nnoremap <f8> :call g:cells.emit({'type': 'format_region'})<cr>
+  nnoremap <f9> :call g:cells.emit({'type': 'rename', 'position': getpos('.')})<cr>
 endf
 fun Jedi()
   call g:bridge_cell.cell_new_by_name({'name': 'cells.asyncio.python_jedi.JediCompletion', 'args': [], 'kwargs': {'id': 'JediCompletion'}})

@@ -37,7 +37,8 @@ call cells#viml#Cell({'traits': ['cells#viml#ftdetect#Trait', 'cells#viml#mappin
 let cell_completion = cells#viml#Cell({'traits': ['cells#viml#completions#Trait']})
 let cell_completion.limit = 10
 
-" , 'cells#vim8#choice#Trait', 'cells#vim8#emit_to_one#Trait', 
+" , 'cells#vim8#choice#Trait', 'cells#vim8#emit_to_one#Trait',
+" 'cells#input#Trait
 
 fun! CompleteMonths(findstart, base)
   if a:findstart

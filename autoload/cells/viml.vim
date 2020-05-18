@@ -143,6 +143,35 @@ fun! cells#viml#CellsBySelector(selector) abort
 endf
 
 
+fun! cells#viml#ApplyChanges(changes)
+  " changes should be sorted from bottom to top
+  let pos = getpos('.')
+
+  for for_file in a:changes
+    let bufid = bufnr(for_file.filepath)
+    if (bufid == -1)
+      exec 'e '.fnameescape(command.filepath)
+      let bufid = bufnr(command.filepath)
+    endif
+
+    for change in for_file.changes
+      if has_key(change, 'insert')
+        let start_pos = change.start.line .'G'. change.start.offset
+        exec 'normal '. (start_pos .'|i') . change.insert ."\<esc>"
+      elseif has_key(change, 'replace_range_with')
+        let start_pos = change.start.line .'G'. change.start.offset.'|'
+        let end_pos = change.end.line .'G'. (change.end.offset-1).'|'
+        let g:s = 'normal '. (start_pos == end_pos ? start_pos .'i' : start_pos .'v'. end_pos . 's') . change.replace_range_with ."\<esc>"
+        exec g:s
+      else
+        echoe 'ignoring unknown change_set'.string(change_set)
+      endif
+    endfor
+  endfor
+
+  call setpos('.', pos)
+endf
+
 fun! cells#viml#CellCollection()
   let c = cells#viml#Cell({'purpose': 'emit emit events to viml cells'})
   fun! c.l_cell_collections(event) abort
@@ -215,6 +244,10 @@ fun! cells#viml#EditorCoreInterface() abort
     return {'buffers': buffers, 'current': b, 'buffers_visited_order' : self.buffers_visited_order}
   endf
 
+  fun! c.buffer_by_id(id)
+    return type(bufid) == type('') ? bufnr(a:id) : a:id
+  endf
+
   fun! c.l_editor_commands(event)
     let results = []
     for command in a:event.commands
@@ -228,20 +261,32 @@ fun! cells#viml#EditorCoreInterface() abort
           call add(results, self.__editor_buffers())
         elseif command == 'cursor_context'
           call add(results, cells#util#CursorContext({'position': getpos('.')}))
+        elseif command == 'store_pos'
+          let stored_pos = getpos('.')
+        elseif command == 'restore_pos'
+          call setpos(stored_pos)
         else
           throw "unknown command ".string(command)
         endif
       elseif type(command) == type({})
-        if has_key(command, 'show_message')
+        if has_key(command, 'apply_changes')
+          call cells#viml#ApplyChanges(command.apply_changes)
+        elseif has_key(command, 'show_message')
           echom command.show_message
+        elseif has_key(command, 'open_filepath')
+          exec 'e '.fnameescape(command.open_filepath)
+          call add(results, bufnr(command.open_filepath))
+        elseif has_key(command, 'buf_id_of_path')
+          call add(results, bufnr(command.buf_id_of_path))
         elseif has_key(command, 'show_error')
           echom command.show_error
         elseif has_key(command, 'save_as_tmp')
           let ei=&ei| set ei=all| exec 'silent! w! '.fnameescape(g:to_vim) | exec 'set ei='.ei
           call add(results, "done")
         elseif has_key(command, 'lines_of_buf_id')
+          let bufid = self.buffer_by_id(command.lines_of_buf_id)
           " lines_of_buf_id % means current buffer
-          call add(results, getbufline(a:event['lines_of_buf_id']), get(a:event, 'from_line', 1), get(a:event, 'to_line', line('$'))))
+          call add(results, getbufline(bufid), get(a:event, 'from_line', 1), get(a:event, 'to_line', line('$'))))
         elseif has_key(command, 'eval')
           call add(results, eval(command.eval))
         elseif has_key(command, "set_current_line")

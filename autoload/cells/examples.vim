@@ -537,7 +537,8 @@ fun! cells#examples#PathCompletion(cell) abort
   " vim's file/directory completion is nice, but suffers from
   " PATH=/ro<c-x><c-f> issues not understanding that = is highly unlikely to
   " be part of the path
-
+  " It also fails on spaces (TODO)
+  " This sitll fails on /home/x.config (TODO)
   let a:cell['completion-functions'] = get(a:cell, 'completion-functions', [])
 
   fun! a:cell.l_completions(event)
