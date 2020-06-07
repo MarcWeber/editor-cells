@@ -15,7 +15,12 @@ fun! cells#viml_py3_inside_vim#BridgeCell() abort
   " keep running python for 10ms, then return to Vim
   let cell.py_async_timeslot_ms = get(cell, 'py_async_timeslot', 5)
   " run vim every 10 ms
-  let cell.vim_timer_frequency_ms = get(cell, 'vim_timer_frequency_ms', 5)
+  let cell.vim_timer_frequency_ms      = get(cell, 'vim_timer_frequency_ms', 10)
+  let cell.vim_timer_frequency_ms_transition = get(cell, 'vim_timer_frequency_ms_transition', 50) " even polling eats up your cpu
+  let cell.vim_timer_frequency_ms_idle = get(cell, 'vim_timer_frequency_ms_idle', 1000) " even polling eats up your cpu
+
+  let cell.last_lent_counter = 0
+  let cell.timer_freq = 0
 
   if !has(cell.py_cmd) | throw 'python '. cell.py_cmd.' required' | endif
   if !has('timers') | throw 'Vim with +timers feature required'   | endif " there are workarounds, but they might be ugly
@@ -36,6 +41,7 @@ fun! cells#viml_py3_inside_vim#BridgeCell() abort
   execute cell.py_cmd.' '.join(py, "\n")
 
   fun! cell.l_emit(event) abort
+    let self.last_lent_counter = 0
     if (a:event.event.origin_network == self['cell-collection-name']) | return | endif
     if has_key(a:event.event, 'reply_to')
       let wait_for_id__for_requesting_cell = 'viml-id-'.cells#viml#NextId()
@@ -51,23 +57,30 @@ fun! cells#viml_py3_inside_vim#BridgeCell() abort
     call self.process_python_asyncio(self.py_async_timeslot_ms)
   endf
 
-  fun! cell.process_python_asyncio(py_async_timeslot_ms) abort
-    execute self.py_cmd.' cells.util.to_vim(cells.python_within_vim.process('. a:py_async_timeslot_ms .'))'
-    if g:to_vim == 0
+  fun! cell.remove_timer()
       " disable timer
       if has_key(self, 'timer')
         call timer_stop(self.timer)
         call remove(self, 'timer')
       endif
+  endf
+
+  fun! cell.process_python_asyncio(py_async_timeslot_ms) abort
+    execute self.py_cmd.' cells.util.to_vim(cells.python_within_vim.process('. a:py_async_timeslot_ms .'))'
+    if g:to_vim == 0
+      call self.remove_timer()
     else
-      " enable timer
-      if !has_key(self, 'timer')
-        let self.timer = timer_start(self.vim_timer_frequency_ms, function(self.process_python_asyncio_timer, [], self) , {"repeat": -1})
+      let ms = self.last_lent_counter > 150  ? self.vim_timer_frequency_ms_idle : ( self.last_lent_counter < 20 ? self.vim_timer_frequency_ms : self.vim_timer_frequency_ms_transition)
+      if !has_key(self, 'timer') || self.timer_freq != ms
+        call self.remove_timer()
+        let self.timer = timer_start(ms, function(self.process_python_asyncio_timer, [], self) , {"repeat": -1})
       endif
     endif
   endf
 
   fun! cell.process_python_asyncio_timer(timer_id) abort
+    " only have high timer frequency is there were events sent to python lately
+    let self.last_lent_counter = self.last_lent_counter+1
     call self.process_python_asyncio(self.py_async_timeslot_ms)
   endf
 

@@ -539,6 +539,9 @@ fun! cells#examples#PathCompletion(cell) abort
   " be part of the path
   " It also fails on spaces (TODO)
   " This sitll fails on /home/x.config (TODO)
+  "
+  " PATH="foo  bar   should 'foo  bar' and 'bar' be completed ? So what is
+  " best way to handle spaces ?
   let a:cell['completion-functions'] = get(a:cell, 'completion-functions', [])
 
   fun! a:cell.l_completions(event)
@@ -552,8 +555,11 @@ fun! cells#examples#PathCompletion(cell) abort
     let dir = list[1]
     let file = list[2]
     if isdirectory(dir)
-      let words = map(split(glob(dir.'/*'),"\n"), '{"w": 1, "word": v:val[len(dir)+1:], "kind":"PathCompletion"}')
+      let words = map(glob(dir.'/*', 0,1,0)+glob(dir.'/.*', 0,1,0), '{"w": 1, "word": v:val[len(dir)+1:], "kind":"PathCompletion (CWD)"}')
+      let rel = expand('%:h')
+      let words2 = map(glob(rel.'/'.dir.'*',0,1,0)+glob(rel.'/'.dir.'.*',0,1,0), '{"w": 1, "word": v:val[len(rel)+len(dir)+1:], "kind":"PathCompletion (buffer)"}')
       let completions = cells#util#match_by_type2(words, file)
+                    \ + cells#util#match_by_type2(words2, file)
       call self.reply_now(a:event, [{
             \ 'column': a:event.event.position[2] - len(file),
             \ 'completions' : completions

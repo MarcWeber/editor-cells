@@ -146,6 +146,7 @@ endf
 fun! cells#viml#ApplyChanges(changes)
   " changes should be sorted from bottom to top
   let pos = getpos('.')
+  let g:c = a:changes
 
   for for_file in a:changes
     let bufid = bufnr(for_file.filepath)
