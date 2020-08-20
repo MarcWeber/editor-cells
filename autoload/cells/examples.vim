@@ -323,7 +323,12 @@ fun! cells#examples#TraitCompletionContext(cell) abort
 
     let word_before_cursor = matchstr(a:event.event.line_split_at_cursor[0], '\zs\w*$')
 
-    let words = self.local_vars(a:event.event.position[1], 40, 200)
+    let line = a:event.event.position[1]
+
+    if (!has_key(self, 'cache') || self.cache.line != line)
+      let self.cache = {'line': line, 'words': self.local_vars(line, 40, 200) }
+    endif
+    let words = self.cache.words
 
     let completions = cells#util#match_by_type2(values(words), word_before_cursor)
     for c in completions

@@ -23,7 +23,14 @@ Combine reusable cells the way you want
 
 ROADMAP / TODO
 ==============
-... ?
+
+[ ] pattern support
+  ["fooo", "bar" .. pattern is ", "
+  TS: "abc" | "xoo"  pattern is " | " ..
+  why having to type it ?
+
+[ ] string completion support. If you use "boo" multiple times it's highly likely that you use "boo" again.
+    Thus sort strings by distance & count ?
 
 SHOTS / Videos
 ==============
